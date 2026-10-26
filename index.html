@@ -55,13 +55,30 @@
   .ring text { font-size: 12px; font-weight: 600; fill: var(--text); text-anchor: middle; dominant-baseline: central; }
   .label { font-size: 13px; }
   .reset { font-size: 12px; color: var(--muted); }
+  .tools { display: flex; align-items: center; gap: 8px; }
+  .reload { border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+  .reload:hover { background: var(--card); color: var(--text); }
+  .reload.spin { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* 直式面板：和 Claude 裡的額度面板同樣的排法 */
+  body.panel { max-width: 420px; }
+  .panel .grid { display: flex; flex-direction: column; gap: 18px; }
+  .panel .card { background: none; padding: 0; }
+  .panel .card h2 { justify-content: flex-start; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+  .panel .item { padding-left: 16px; }
+  .panel .item + .item { margin-top: 10px; }
+  .panel .line { display: flex; justify-content: space-between; gap: 8px; }
+  .panel .pct { font-weight: 600; }
+  .panel .bar { display: flex; gap: 2px; margin-top: 4px; flex: 1; max-width: 220px; }
+  .panel .bar i { flex: 1; height: 10px; border-radius: 2px; background: var(--track); }
+  .panel .bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
 </style>
 </head>
 <body>
 <header>
   <h1>模型額度</h1>
-  <div class="stamp" id="stamp"></div>
+  <div class="tools"><div class="stamp" id="stamp"></div><button class="reload" id="reload" title="重新讀取最新資料" aria-label="重新讀取">↻</button></div>
 </header>
 <div class="grid" id="grid"><div class="empty">讀取中…</div></div>
 
@@ -109,9 +126,25 @@ function ring(r) {
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
+const isPanel = () => document.body.classList.contains('panel')
+
+function panelItem(w) {
+  const v = Math.max(0, Math.min(100, w.remaining)), n = Math.round(v / 10)
+  const bar = Array.from({ length: 10 }, (_, i) => `<i style="${i < n ? `background:${color(v)}` : ''}"></i>`).join('')
+  return `<div class="item">
+    <div class="line"><span class="label">${esc(w.label)}</span><span class="pct" style="color:${color(v)}">剩 ${Math.round(v)}%</span></div>
+    <div class="bottom"><div class="bar">${bar}</div><span class="reset">${resetText(w.resetsAt)}</span></div>
+  </div>`
+}
+
 function render(data) {
   const grid = document.getElementById('grid')
-  grid.innerHTML = (data.accounts || []).map(a => `
+  if (isPanel()) {
+    grid.innerHTML = (data.accounts || []).map(a => `
+      <section class="card"><h2>${esc(a.name)}<span>${esc(a.plan || '')}</span></h2>
+        ${(a.windows || []).map(panelItem).join('') || '<div class="reset">沒有資料</div>'}
+      </section>`).join('') || '<div class="empty">沒有資料</div>'
+  } else grid.innerHTML = (data.accounts || []).map(a => `
     <section class="card">
       <h2>${esc(a.name)}<span>${esc(a.plan || '')}</span></h2>
       ${(a.windows || []).map(w => `
@@ -128,6 +161,7 @@ function render(data) {
 async function load() {
   const p = new URLSearchParams(location.search)
   if (p.get('theme')) document.documentElement.dataset.theme = p.get('theme')
+  if (p.get('layout') === 'panel') document.body.classList.add('panel')
   const gist = p.get('g')
   if (!gist) return render(SAMPLE)
   try {
@@ -138,6 +172,12 @@ async function load() {
     document.getElementById('grid').innerHTML = '<div class="empty">讀不到資料</div>'
   }
 }
+const btn = document.getElementById('reload')
+btn.addEventListener('click', async () => {
+  btn.classList.add('spin')
+  await load()
+  btn.classList.remove('spin')
+})
 load()
 </script>
 </body>
