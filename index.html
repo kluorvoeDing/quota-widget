@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型額度</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #f6f6f4;
+    --text: #1f1f1d;
+    --muted: #8a8a85;
+    --track: #e4e4df;
+    --ok: #3b82f6;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #191919;
+      --card: #242424;
+      --text: #ececea;
+      --muted: #8f8f8a;
+      --track: #353533;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #191919;
+    --card: #242424;
+    --text: #ececea;
+    --muted: #8f8f8a;
+    --track: #353533;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif;
+    padding: 16px;
+  }
+  header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  h1 { font-size: 15px; font-weight: 600; }
+  .stamp { font-size: 12px; color: var(--muted); }
+  .stamp.stale { color: var(--warn); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .card { background: var(--card); border-radius: 12px; padding: 12px 14px; }
+  .card h2 { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .card h2 span { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .row + .row { margin-top: 10px; }
+  .ring { flex: none; width: 44px; height: 44px; }
+  .ring circle { fill: none; stroke-width: 5; }
+  .ring .track { stroke: var(--track); }
+  .ring .val { stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .6s; }
+  .ring text { font-size: 12px; font-weight: 600; fill: var(--text); text-anchor: middle; dominant-baseline: central; }
+  .label { font-size: 13px; }
+  .reset { font-size: 12px; color: var(--muted); }
+  .empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>模型額度</h1>
+  <div class="stamp" id="stamp"></div>
+</header>
+<div class="grid" id="grid"><div class="empty">讀取中…</div></div>
+
+<script>
+// 預覽用的範例資料；正式版從網址 ?g=<gist id> 讀取 Mac 上傳的資料
+const SAMPLE = {
+  updatedAt: Date.now(),
+  accounts: [
+    { name: 'ChatGPT 1', plan: 'Plus', windows: [
+      { label: '5 小時', remaining: 100, resetsAt: Date.now() + 5 * 3600e3 },
+      { label: '每週', remaining: 100, resetsAt: Date.now() + 7 * 86400e3 } ] },
+    { name: 'ChatGPT 2', plan: 'Plus', windows: [
+      { label: '5 小時', remaining: 100, resetsAt: Date.now() + 4.9 * 3600e3 },
+      { label: '每週', remaining: 98, resetsAt: Date.now() + 6.9 * 86400e3 } ] },
+    { name: 'Google AI Pro', plan: 'Antigravity', windows: [
+      { label: 'Gemini · 每週', remaining: 99, resetsAt: Date.now() + 6.6 * 86400e3 },
+      { label: 'Claude / GPT-OSS · 每週', remaining: 47, resetsAt: Date.now() + 6 * 86400e3 },
+      { label: 'Gemini 4 Argon · 每週', remaining: 96, resetsAt: Date.now() + 6.6 * 86400e3 } ] },
+  ],
+}
+
+const color = r => r <= 5 ? 'var(--bad)' : r <= 20 ? 'var(--warn)' : 'var(--ok)'
+const pad = n => String(n).padStart(2, '0')
+
+function resetText(ms) {
+  const now = Date.now()
+  if (!ms) return ''
+  if (ms <= now) return '已重置'
+  const d = new Date(ms)
+  const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const same = (a, b) => a.toDateString() === b.toDateString()
+  if (same(d, new Date(now))) return `今天 ${hm} 重置`
+  if (same(d, new Date(now + 86400e3))) return `明天 ${hm} 重置`
+  return `${d.getMonth() + 1}/${d.getDate()} ${hm} 重置`
+}
+
+function ring(r) {
+  const R = 18, C = 2 * Math.PI * R, v = Math.max(0, Math.min(100, r))
+  return `<svg class="ring" viewBox="0 0 44 44" aria-label="剩 ${Math.round(v)}%">
+    <circle class="track" cx="22" cy="22" r="${R}"/>
+    <circle class="val" cx="22" cy="22" r="${R}" stroke="${color(v)}"
+      stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - v / 100)}"/>
+    <text x="22" y="22">${Math.round(v)}</text></svg>`
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+
+function render(data) {
+  const grid = document.getElementById('grid')
+  grid.innerHTML = (data.accounts || []).map(a => `
+    <section class="card">
+      <h2>${esc(a.name)}<span>${esc(a.plan || '')}</span></h2>
+      ${(a.windows || []).map(w => `
+        <div class="row">${ring(w.remaining)}
+          <div><div class="label">${esc(w.label)}</div><div class="reset">${resetText(w.resetsAt)}</div></div>
+        </div>`).join('') || '<div class="reset">沒有資料</div>'}
+    </section>`).join('') || '<div class="empty">沒有資料</div>'
+  const d = new Date(data.updatedAt), stamp = document.getElementById('stamp')
+  const ageH = (Date.now() - data.updatedAt) / 3600e3
+  stamp.textContent = `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())} 更新`
+  stamp.classList.toggle('stale', ageH > 12)
+}
+
+async function load() {
+  const p = new URLSearchParams(location.search)
+  if (p.get('theme')) document.documentElement.dataset.theme = p.get('theme')
+  const gist = p.get('g')
+  if (!gist) return render(SAMPLE)
+  try {
+    const res = await fetch(`https://api.github.com/gists/${encodeURIComponent(gist)}`, { cache: 'no-store' })
+    const g = await res.json()
+    render(JSON.parse(g.files['quota.json'].content))
+  } catch (e) {
+    document.getElementById('grid').innerHTML = '<div class="empty">讀不到資料</div>'
+  }
+}
+load()
+</script>
+</body>
+</html>
