@@ -72,13 +72,36 @@
   .panel .bar { display: flex; gap: 2px; margin-top: 4px; flex: 1; max-width: 220px; }
   .panel .bar i { flex: 1; height: 10px; border-radius: 2px; background: var(--track); }
   .panel .bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  /* 詳細版：?layout=detail */
+  body.detail { max-width: 760px; }
+  .detail .grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+  .detail .card { padding: 14px 16px; }
+  .detail .card h2 { font-size: 14px; margin-bottom: 12px; }
+  .seg { display: inline-flex; background: var(--card); border-radius: 8px; padding: 2px; }
+  .seg[hidden] { display: none; }
+  .seg button { border: 0; background: none; color: var(--muted); font-size: 12px; padding: 3px 10px; border-radius: 6px; cursor: pointer; }
+  .seg button.on { background: var(--bg); color: var(--text); box-shadow: 0 0 0 1px var(--track); }
+  .win + .win { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--track); }
+  .win .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .win .pct { font-weight: 600; }
+  .proj { font-size: 12px; margin: 2px 0 6px; color: var(--muted); }
+  .proj.ok { color: var(--ok); } .proj.warn { color: var(--warn); } .proj.bad { color: var(--bad); }
+  svg.chart { display: block; width: 100%; height: 64px; }
+  svg.chart .gl { stroke: var(--track); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  svg.chart .rs { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 3; opacity: .55; vector-effect: non-scaling-stroke; }
+  svg.chart .ln { fill: none; stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .days { display: flex; align-items: flex-end; gap: 2px; height: 34px; margin-top: 6px; }
+  .days i { flex: 1; min-height: 2px; border-radius: 2px 2px 0 0; background: var(--ok); opacity: .75; }
+  .days i.none { background: var(--track); opacity: 1; }
+  .cap { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .nodata { font-size: 12px; color: var(--muted); padding: 10px 0; }
   .empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
 </style>
 </head>
 <body>
 <header>
   <h1>模型額度</h1>
-  <div class="tools"><div class="stamp" id="stamp"></div><button class="reload" id="reload" title="重新讀取最新資料" aria-label="重新讀取">↻</button></div>
+  <div class="tools"><div class="seg" id="seg" hidden><button data-d="7" class="on">7 天</button><button data-d="30">30 天</button></div><div class="stamp" id="stamp"></div><button class="reload" id="reload" title="重新讀取最新資料" aria-label="重新讀取">↻</button></div>
 </header>
 <div class="grid" id="grid"><div class="empty">讀取中…</div></div>
 
@@ -137,9 +160,118 @@ function panelItem(w) {
   </div>`
 }
 
+
+// ---------- 詳細版 ----------
+const DAY = 86400e3
+let HIST = null, LAST = null, RANGE = 7
+const isDetail = () => document.body.classList.contains('detail')
+const winLen = label => /5 小時$/.test(label) ? 5 * 3600e3 : /每週$/.test(label) ? 7 * DAY : 0
+const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` }
+const fmtDT = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}` }
+const fmtDur = ms => { const h = ms / 3600e3; return h < 1 ? `${Math.max(1, Math.round(h * 60))} 分鐘` : h < 48 ? `${Math.round(h * 10) / 10} 小時` : `${Math.round(h / 24 * 10) / 10} 天` }
+
+function seriesOf(key) {
+  if (!HIST) return []
+  const i = HIST.keys.indexOf(key)
+  if (i < 0) return []
+  return HIST.rows.filter(r => r[i + 1] != null).map(r => [r[0], r[i + 1]])
+}
+
+// 兩點之間的下降量加總；上升是重置，不算用量
+function drops(pts, from, to) {
+  let u = 0
+  for (let i = 1; i < pts.length; i++) {
+    if (pts[i][0] < from || pts[i][0] > to) continue
+    const d = pts[i - 1][1] - pts[i][1]
+    if (d > 0 && d <= 100) u += d
+  }
+  return u
+}
+
+function dailyUse(pts, from, now) {
+  const m = new Map()
+  for (let i = 1; i < pts.length; i++) {
+    const d = pts[i - 1][1] - pts[i][1]
+    if (d > 0 && d <= 100) m.set(dayKey(pts[i][0]), (m.get(dayKey(pts[i][0])) || 0) + d)
+  }
+  const out = []
+  for (let t = from; t <= now + 3600e3; t += DAY) {
+    const k = dayKey(t); if (!out.some(x => x.k === k)) out.push({ k, t, use: m.get(k) || 0 })
+  }
+  return out.slice(-Math.round((now - from) / DAY) - 1)
+}
+
+function project(w, pts, now) {
+  const len = winLen(w.label)
+  if (!len || !w.resetsAt) return null
+  if (w.resetsAt <= now) return { cls: 'ok', text: '已重置' }
+  const start = w.resetsAt - len, remain = w.remaining, used = 100 - remain
+  const avg = used / Math.max(now - start, 3600e3)
+  const R = len < DAY ? 3600e3 : DAY
+  const recentPts = pts.filter(p => p[0] >= now - R)
+  let recent = 0
+  if (recentPts.length >= 2 && recentPts[recentPts.length - 1][0] - recentPts[0][0] >= 20 * 60e3)
+    recent = drops(recentPts, 0, now) / (recentPts[recentPts.length - 1][0] - recentPts[0][0])
+  const rate = Math.max(avg, recent), basis = recent > avg ? (len < DAY ? '近 1 小時速度' : '近 24 小時速度') : '本期平均速度'
+  if (used < 1 && rate < 1e-12) return { cls: 'ok', text: '這一期還沒用到' }
+  if (rate <= 0) return { cls: 'ok', text: '目前沒有消耗' }
+  const out = now + remain / rate
+  if (out >= w.resetsAt) {
+    const left = Math.max(0, remain - rate * (w.resetsAt - now))
+    return { cls: left < 15 ? 'warn' : 'ok', text: `照${basis}撐得到重置，預估重置時剩約 ${Math.round(left)}%` }
+  }
+  return { cls: 'bad', text: `照${basis}會在 ${fmtDT(out)} 用完，比重置早 ${fmtDur(w.resetsAt - out)}` }
+}
+
+function chart(pts, from, now, resets, cur) {
+  const W = 320, H = 64, x = t => (t - from) / (now - from) * W, y = v => H - 3 - v / 100 * (H - 6)
+  const before = pts.filter(p => p[0] < from).pop()
+  const inRange = pts.filter(p => p[0] >= from)
+  const seq = (before ? [[from, before[1]]] : []).concat(inRange)
+  if (!seq.length) return ''
+  seq.push([now, seq[seq.length - 1][1]])
+  let d = `M${x(seq[0][0]).toFixed(1)},${y(seq[0][1]).toFixed(1)}`
+  for (let i = 1; i < seq.length; i++) d += ` H${x(seq[i][0]).toFixed(1)} V${y(seq[i][1]).toFixed(1)}`
+  const area = `${d} V${H} H${x(seq[0][0]).toFixed(1)} Z`
+  const c = color(cur)
+  const rs = (resets || []).filter(t => t >= from && t <= now).map(t => `<line class="rs" x1="${x(t).toFixed(1)}" x2="${x(t).toFixed(1)}" y1="0" y2="${H}"/>`).join('')
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <line class="gl" x1="0" x2="${W}" y1="${y(15)}" y2="${y(15)}" style="stroke:var(--bad);opacity:.35"/>
+    ${rs}<path d="${area}" fill="${c}" opacity=".12"/><path class="ln" d="${d}" stroke="${c}"/></svg>`
+}
+
+function detailWin(acctName, w) {
+  const key = `${acctName}|${w.label}`, now = Date.now(), from = now - RANGE * DAY
+  const pts = seriesOf(key), v = Math.max(0, Math.min(100, w.remaining))
+  const pr = project(w, pts, now)
+  const enough = pts.filter(p => p[0] >= from).length >= 2
+  let body
+  if (!enough) body = '<div class="nodata">資料累積中，過幾天這裡會出現曲線</div>'
+  else {
+    const days = dailyUse(pts, from, now), max = Math.max(10, ...days.map(x => x.use))
+    const total = days.reduce((a, x) => a + x.use, 0), top = days.reduce((a, x) => x.use > a.use ? x : a, days[0])
+    const i = HIST.keys.indexOf(key)
+    body = chart(pts, from, now, HIST.resets[key], v) + `<div class="days">${days.map(x =>
+      `<i class="${x.use ? '' : 'none'}" style="height:${x.use ? Math.max(8, x.use / max * 100) : 0}%" title="${new Date(x.t).getMonth() + 1}/${new Date(x.t).getDate()}：用掉 ${Math.round(x.use)}%"></i>`).join('')}</div>
+      <div class="cap"><span>${winLen(w.label) < DAY ? `${RANGE} 天用掉約 ${(total / 100).toFixed(1)} 個額度 · 日均 ${(total / 100 / days.length).toFixed(1)} 個` : `${RANGE} 天共用 ${Math.round(total)}% · 日均 ${(total / days.length).toFixed(1)}%`}</span><span>${top.use ? `最多 ${new Date(top.t).getMonth() + 1}/${new Date(top.t).getDate()} ${winLen(w.label) < DAY ? (top.use / 100).toFixed(1) + ' 個' : Math.round(top.use) + '%'}` : ''}</span></div>`
+  }
+  return `<div class="win">
+    <div class="top"><span class="label">${esc(w.label)}</span><span class="pct" style="color:${color(v)}">剩 ${Math.round(v)}%</span></div>
+    ${pr ? `<div class="proj ${pr.cls}">${esc(pr.text)}</div>` : ''}${body}</div>`
+}
+
+function renderDetail(data) {
+  document.getElementById('grid').innerHTML = (data.accounts || []).map(a => `
+    <section class="card"><h2>${esc(a.name)}<span>${esc(a.plan || '')}</span></h2>
+      ${(a.windows || []).map(w => detailWin(a.name, w)).join('') || '<div class="reset">沒有資料</div>'}
+    </section>`).join('') || '<div class="empty">沒有資料</div>'
+}
+
 function render(data) {
+  LAST = data
   const grid = document.getElementById('grid')
-  if (isPanel()) {
+  if (isDetail()) renderDetail(data)
+  else if (isPanel()) {
     grid.innerHTML = (data.accounts || []).map(a => `
       <section class="card"><h2>${esc(a.name)}<span>${esc(a.plan || '')}</span></h2>
         ${(a.windows || []).map(panelItem).join('') || '<div class="reset">沒有資料</div>'}
@@ -162,16 +294,27 @@ async function load() {
   const p = new URLSearchParams(location.search)
   if (p.get('theme')) document.documentElement.dataset.theme = p.get('theme')
   if (p.get('layout') === 'panel') document.body.classList.add('panel')
+  if (p.get('layout') === 'detail') { document.body.classList.add('detail'); document.getElementById('seg').hidden = false }
   const gist = p.get('g')
   if (!gist) return render(SAMPLE)
   try {
     const res = await fetch(`https://api.github.com/gists/${encodeURIComponent(gist)}`, { cache: 'no-store' })
     const g = await res.json()
+    const hf = g.files['history.json']
+    if (isDetail() && hf) {
+      try { HIST = JSON.parse(hf.truncated ? await (await fetch(hf.raw_url, { cache: 'no-store' })).text() : hf.content) } catch (e) { HIST = null }
+    }
     render(JSON.parse(g.files['quota.json'].content))
   } catch (e) {
     document.getElementById('grid').innerHTML = '<div class="empty">讀不到資料</div>'
   }
 }
+document.getElementById('seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return
+  RANGE = +b.dataset.d
+  document.querySelectorAll('#seg button').forEach(x => x.classList.toggle('on', x === b))
+  if (LAST) render(LAST)
+})
 const btn = document.getElementById('reload')
 btn.addEventListener('click', async () => {
   btn.classList.add('spin')
