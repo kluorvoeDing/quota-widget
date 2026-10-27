@@ -38,7 +38,8 @@
     font: 14px/1.4 -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif;
     padding: 16px;
   }
-  header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  header { display: flex; justify-content: flex-start; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .tools.bar { margin-top: 14px; justify-content: flex-start; }
   h1 { font-size: 15px; font-weight: 600; }
   .stamp { font-size: 12px; color: var(--muted); }
   .stamp.stale { color: var(--warn); }
@@ -102,10 +103,11 @@
 <body>
 <header>
   <h1>模型額度</h1>
-  <div class="tools"><div class="seg" id="seg" hidden><button data-d="7" class="on">7 天</button><button data-d="30">30 天</button></div><div class="stamp" id="stamp"></div><button class="reload" id="reload" title="重新讀取最新資料" aria-label="重新讀取">↻</button></div>
+  <div class="seg" id="seg" hidden><button data-d="7" class="on">7 天</button><button data-d="30">30 天</button></div>
 </header>
 <div class="grid" id="grid"><div class="empty">讀取中…</div></div>
 <div class="foot" id="foot"></div>
+<div class="tools bar"><button class="reload" id="reload" title="重新讀取最新資料" aria-label="重新讀取">↻</button><div class="stamp" id="stamp"></div></div>
 
 <script>
 // 預覽用的範例資料；正式版從網址 ?g=<gist id> 讀取 Mac 上傳的資料
