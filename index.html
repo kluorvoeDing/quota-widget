@@ -100,7 +100,7 @@ const SAMPLE = {
   ],
 }
 
-const color = r => r <= 5 ? 'var(--bad)' : r <= 20 ? 'var(--warn)' : 'var(--ok)'
+const color = r => r <= 15 ? 'var(--bad)' : r <= 40 ? 'var(--warn)' : 'var(--ok)'
 const pad = n => String(n).padStart(2, '0')
 
 function resetText(ms) {
