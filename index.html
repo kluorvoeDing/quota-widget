@@ -98,6 +98,126 @@
   .days i.none { background: var(--track); opacity: 1; }
   .foot { font-size: 11px; color: var(--muted); text-align: center; margin-top: 12px; }
   .empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
+
+/* V2 detailed analytics — isolated from default and panel layouts */
+body.detail {
+  --q-bg: #fafaf8; --q-surface: #ffffff; --q-soft: #f5f5f2;
+  --q-border: #e7e7e2; --q-ink: #202124; --q-sub: #777b80;
+  --q-blue: #5187dc; --q-orange: #d29a3c; --q-red: #d86361;
+  max-width: 760px; margin: 0 auto; padding: 14px 14px 26px;
+  background: var(--q-bg); color: var(--q-ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body.detail {
+    --q-bg:#191a1c;--q-surface:#252629;--q-soft:#202124;
+    --q-border:#393b3f;--q-ink:#f0f0ed;--q-sub:#a1a4a9;
+    --q-blue:#8aaff6;--q-orange:#e5b865;--q-red:#f08b88;
+  }
+}
+:root[data-theme="dark"] body.detail {
+  --q-bg:#191a1c;--q-surface:#252629;--q-soft:#202124;
+  --q-border:#393b3f;--q-ink:#f0f0ed;--q-sub:#a1a4a9;
+  --q-blue:#8aaff6;--q-orange:#e5b865;--q-red:#f08b88;
+}
+.detail header {
+  min-height:40px; padding-right:72px; display:flex; align-items:center;
+  justify-content:flex-start; margin-bottom:7px;
+}
+.detail header h1 { font-size:17px; font-weight:720; letter-spacing:-.35px; }
+.detail .detail-toolbar {
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; flex-wrap:wrap; margin-bottom:16px; min-height:35px;
+}
+.detail .tools.bar { margin:0; gap:8px; display:flex; align-items:center; }
+.detail .reload {
+  width:34px; height:34px; display:grid; place-items:center;
+  border:1px solid var(--q-border); background:var(--q-surface);
+  border-radius:9px; color:var(--q-ink); font-size:20px; line-height:1;
+}
+.detail .reload:hover { background:var(--q-soft); }
+.detail .stamp { font-size:11px; color:var(--q-sub); }
+.detail .seg { background:var(--q-soft); border:1px solid var(--q-border); padding:3px; border-radius:9px; }
+.detail .seg button { min-width:49px; padding:5px 10px; color:var(--q-sub); border-radius:7px; }
+.detail .seg button.on { color:var(--q-ink); background:var(--q-surface); box-shadow:0 1px 3px #00000010; }
+.detail .grid { display:flex; flex-direction:column; gap:10px; }
+.detail .account-card { border:1px solid var(--q-border); border-radius:12px; overflow:hidden; background:var(--q-surface); }
+.detail .account-trigger {
+  display:block; border:0; background:transparent; color:inherit; text-align:left;
+  padding:14px 15px 13px; width:100%; cursor:pointer; font:inherit;
+}
+.detail .account-trigger:hover { background:var(--q-soft); }
+.detail .account-trigger:focus-visible, .detail button:focus-visible,
+.detail summary:focus-visible { outline:2px solid var(--q-blue);outline-offset:-2px; }
+.detail .account-title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+.detail .account-title { font-size:14px; font-weight:680; letter-spacing:-.2px; }
+.detail .account-plan { color:var(--q-sub); font-size:11px; margin-top:2px; }
+.detail .account-indicator { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--q-sub); }
+.detail .chevron { width:18px;height:18px;flex:none;transition:transform .2s; }
+.detail .account-card.expanded .chevron { transform:rotate(180deg); }
+.detail .summary-meters { display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:14px 18px; }
+.detail .summary-labels { display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:7px; }
+.detail .summary-name { color:var(--q-sub); font-size:11px; overflow-wrap:anywhere; }
+.detail .summary-percent { font-size:15px; font-weight:670; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.detail .meter { height:5px; width:100%;background:var(--q-border);border-radius:8px;overflow:hidden; }
+.detail .meter > i { display:block; height:100%; border-radius:8px; background:var(--q-blue); }
+.detail .meter.warn > i {background:var(--q-orange);}
+.detail .meter.bad > i {background:var(--q-red);}
+.detail .summary-alert { display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--q-orange); }
+.detail .summary-alert.bad {color:var(--q-red);}
+.detail .detail-content { padding:15px; border-top:1px solid var(--q-border); background:var(--q-surface); }
+.detail .window-tabs { display:flex; gap:5px; overflow-x:auto; padding:3px; background:var(--q-soft);border-radius:9px; margin-bottom:15px; }
+.detail .window-tabs button { flex:1 0 auto; min-width:0; border:0;cursor:pointer; padding:8px 9px; font-size:12px; color:var(--q-sub);background:transparent;border-radius:7px; }
+.detail .window-tabs button.active { color:var(--q-ink);font-weight:650;background:var(--q-surface);box-shadow:0 1px 4px #00000011; }
+.detail .focus-row { display:flex;justify-content:space-between;align-items:flex-end; gap:12px;margin-bottom:16px;flex-wrap:wrap; }
+.detail .metric-kicker {color:var(--q-sub);font-size:11px;margin-bottom:4px;}
+.detail .metric-big {font-size:31px;line-height:1.1;letter-spacing:-1.1px;font-weight:740;font-variant-numeric:tabular-nums;}
+.detail .reset-at {font-size:11px;color:var(--q-sub); margin-top:6px;}
+.detail .forecast-status {font-size:12px;font-weight:650;max-width:180px;text-align:right;}
+.detail .forecast-status.warn {color:var(--q-orange);}
+.detail .forecast-status.bad {color:var(--q-red);}
+.detail .analytics-section {background:var(--q-soft);border:1px solid var(--q-border);padding:12px;border-radius:10px;margin:0 0 11px;}
+.detail .section-heading { display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px; }
+.detail .section-heading h3 {font-size:12px;font-weight:650;}
+.detail .section-note {color:var(--q-sub);font-size:10px;}
+.detail .chart-frame {position:relative; width:100%;}
+.detail .trend-chart {display:block;width:100%;height:174px;touch-action:pan-y;}
+.detail .trend-chart .axis {font-size:10px;fill:var(--q-sub);}
+.detail .trend-chart .gridline {stroke:var(--q-border);stroke-width:1;stroke-dasharray:3 4;}
+.detail .trend-chart .reset-line {stroke:var(--q-orange);stroke-width:1.3;stroke-dasharray:4 4;}
+.detail .trend-chart .trend-area {fill:var(--q-blue);opacity:.09;}
+.detail .trend-chart .trend-line {fill:none;stroke:var(--q-blue);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke;}
+.detail .trend-chart .chart-cursor {stroke:var(--q-blue);stroke-dasharray:3 4;opacity:.7;display:none;}
+.detail .chart-tip {pointer-events:none;position:absolute;z-index:2;top:4px;left:50%;transform:translateX(-50%);background:var(--q-ink);color:var(--q-surface);padding:6px 9px;font-size:11px;line-height:1.5;border-radius:6px;white-space:nowrap;display:none;}
+.detail .legend {display:flex;gap:12px;align-items:center;color:var(--q-sub);font-size:10px;margin-top:4px;}
+.detail .legend-dot {width:7px;height:7px;background:var(--q-blue);border-radius:50%;display:inline-block;margin-right:4px;}
+.detail .legend-dash {display:inline-block;width:14px;border-top:2px dashed var(--q-orange);vertical-align:middle;margin-right:4px;}
+.detail .usage-chart {display:flex;align-items:flex-end;gap:3px;height:78px;padding:6px 3px 0;border-bottom:1px solid var(--q-border);}
+.detail .usage-bar {flex:1;min-width:2px;border-radius:3px 3px 0 0;background:var(--q-blue);opacity:.63;}
+.detail .usage-bar.unknown {background:var(--q-border);opacity:1;}
+.detail .usage-caption {font-size:11px;color:var(--q-sub);margin-top:8px;}
+.detail .analysis-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+.detail .mini-metric {background:var(--q-soft);border:1px solid var(--q-border);border-radius:9px;padding:10px;}
+.detail .mini-value {font-size:12px;font-weight:650;overflow-wrap:anywhere;}
+.detail .reset-history {margin-top:11px;}
+.detail .reset-history summary {font-size:11px;color:var(--q-sub);cursor:pointer;list-style-position:inside;}
+.detail .reset-history li {font-size:11px;margin:6px 0 0 15px;color:var(--q-sub);}
+.detail .forecast-copy {font-size:12px;color:var(--q-ink);line-height:1.6;}
+.detail .forecast-method {font-size:11px;color:var(--q-sub);line-height:1.55;margin-top:5px;}
+.detail .info-empty {font-size:12px;color:var(--q-sub);padding:18px 5px;text-align:center;}
+.detail .foot {font-size:11px;color:var(--q-sub);margin-top:14px;}
+@media (max-width:380px) {
+  body.detail {padding:12px 10px 20px;}
+  .detail header {padding-right:72px;}
+  .detail .detail-toolbar {gap:7px;}
+  .detail .account-trigger,.detail .detail-content {padding:12px;}
+  .detail .summary-meters {gap:12px;}
+  .detail .focus-row {align-items:flex-start;}
+  .detail .forecast-status {text-align:left;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .detail *, .detail *::before, .detail *::after {animation-duration:0.01ms!important;transition-duration:0.01ms!important;}
+}
+
 </style>
 </head>
 <body>
@@ -165,112 +285,216 @@ function panelItem(w) {
 }
 
 
-// ---------- 詳細版 ----------
+
+// ---------- V2 detailed analytics ----------
 const DAY = 86400e3
-let HIST = null, LAST = null, RANGE = 7, NEED_MORE = false
+let HIST = null, LAST = null, RANGE = 7, OPEN_ACCOUNT = null
+const SELECTED_WINDOWS = new Map()
 const isDetail = () => document.body.classList.contains('detail')
 const winLen = label => /5 小時$/.test(label) ? 5 * 3600e3 : /每週$/.test(label) ? 7 * DAY : 0
-const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` }
-const fmtDT = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}` }
-const fmtDur = ms => { const h = ms / 3600e3; return h < 1 ? `${Math.max(1, Math.round(h * 60))} 分鐘` : h < 48 ? `${Math.round(h * 10) / 10} 小時` : `${Math.round(h / 24 * 10) / 10} 天` }
+const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() }
+const fmtDT = t => { const d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) }
+const pctVal = v => Math.max(0, Math.min(100, Number.isFinite(+v) ? +v : 0))
+const fmtPct = v => Math.round(pctVal(v)) + '%'
+const validTime = t => Number.isFinite(+t) && +t > 0
+const statusText = s => s === 'bad' ? '可能提前耗盡' : s === 'warn' ? '接近額度上限' : '可撐到重置'
 
 function seriesOf(key) {
-  if (!HIST) return []
-  const i = HIST.keys.indexOf(key)
-  if (i < 0) return []
-  return HIST.rows.filter(r => r[i + 1] != null).map(r => [r[0], r[i + 1]])
+  if (!HIST || !Array.isArray(HIST.keys) || !Array.isArray(HIST.rows)) return []
+  const index = HIST.keys.indexOf(key)
+  if (index < 0) return []
+  return HIST.rows.filter(r => Array.isArray(r) && validTime(r[0]) && r[index + 1] != null && Number.isFinite(+r[index + 1]))
+    .map(r => [+r[0], pctVal(r[index + 1])]).sort((a,b) => a[0] - b[0])
 }
-
-// 兩點之間的下降量加總；上升是重置，不算用量
-function drops(pts, from, to) {
-  let u = 0
+function resetsOf(key) {
+  const r = HIST && HIST.resets && HIST.resets[key]
+  return Array.isArray(r) ? r.filter(validTime).map(Number).sort((a,b) => a-b) : []
+}
+function dropTotal(pts, start, stop) {
+  let total = 0
   for (let i = 1; i < pts.length; i++) {
-    if (pts[i][0] < from || pts[i][0] > to) continue
-    const d = pts[i - 1][1] - pts[i][1]
-    if (d > 0 && d <= 100) u += d
+    if (pts[i][0] < start || pts[i][0] > stop) continue
+    const d = pts[i-1][1] - pts[i][1]
+    if (d > 0 && d <= 100) total += d
   }
-  return u
+  return total
 }
-
-function dailyUse(pts, from, now) {
-  const m = new Map()
-  for (let i = 1; i < pts.length; i++) {
-    const d = pts[i - 1][1] - pts[i][1]
-    if (d > 0 && d <= 100) m.set(dayKey(pts[i][0]), (m.get(dayKey(pts[i][0])) || 0) + d)
-  }
-  const out = []
-  for (let t = from; t <= now + 3600e3; t += DAY) {
-    const k = dayKey(t); if (!out.some(x => x.k === k)) out.push({ k, t, use: m.get(k) || 0 })
-  }
-  return out.slice(-Math.round((now - from) / DAY) - 1)
-}
-
-function project(w, pts, now) {
-  const len = winLen(w.label)
-  if (!len || !w.resetsAt || w.resetsAt <= now) return null
-  const start = w.resetsAt - len, remain = w.remaining, used = 100 - remain
-  const avg = used / Math.max(now - start, 3600e3)
-  const R = len < DAY ? 3600e3 : DAY
-  const rp = pts.filter(p => p[0] >= now - R)
-  let recent = 0
-  if (rp.length >= 2 && rp[rp.length - 1][0] - rp[0][0] >= 20 * 60e3)
-    recent = drops(rp, 0, now) / (rp[rp.length - 1][0] - rp[0][0])
+function forecast(w, pts) {
+  const now = Date.now(), len = winLen(w.label)
+  if (!len || !validTime(w.resetsAt) || w.resetsAt <= now || !pts.length) return null
+  const start = w.resetsAt - len
+  const current = pts.filter(p => p[0] >= start && p[0] <= now)
+  if (current.length < 2 || current[current.length-1][0] - current[0][0] < 20*60e3) return null
+  const used = 100 - pctVal(w.remaining)
+  const elapsed = Math.max(now - start, 60*60e3)
+  const avg = used / elapsed
+  const recentStart = now - (len < DAY ? 60*60e3 : DAY)
+  const rp = current.filter(p => p[0] >= recentStart)
+  const recent = rp.length >= 2 && rp[rp.length-1][0] - rp[0][0] >= 20*60e3
+    ? dropTotal(rp, recentStart, now) / (rp[rp.length-1][0] - rp[0][0]) : 0
   const rate = Math.max(avg, recent)
-  if (used < 1 || rate <= 0) return null
-  const out = now + remain / rate
-  if (out >= w.resetsAt) {
-    const left = Math.max(0, remain - rate * (w.resetsAt - now))
-    return { cls: left < 15 ? 'warn' : 'ok', text: left < 15 ? `撐到重置只剩 ${Math.round(left)}%` : '撐得到重置', tip: `照目前速度，重置時約剩 ${Math.round(left)}%` }
+  if (rate <= 0) return null
+  const remaining = pctVal(w.remaining), projected = now + remaining / rate
+  if (projected < w.resetsAt) {
+    return { cls:'bad', title:'可能提前耗盡', description:'依目前消耗速度，預估 ' + fmtDT(projected) + ' 耗盡，早於預定重置。' }
   }
-  return { cls: 'bad', text: `${fmtDT(out)} 用完`, tip: `照目前速度會比重置早 ${fmtDur(w.resetsAt - out)} 用完` }
+  const left = Math.max(0, remaining - rate * (w.resetsAt - now))
+  return { cls:left < 15 ? 'warn' : 'ok', title:left < 15 ? '接近額度上限' : '預估足夠',
+    description:'以目前速度估算，重置時約剩 ' + Math.round(left) + '%。' }
 }
-
-function chart(pts, from, now, resets, cur) {
-  const W = 320, H = 44, x = t => (t - from) / (now - from) * W, y = v => H - 3 - v / 100 * (H - 6)
-  const before = pts.filter(p => p[0] < from).pop()
-  const inRange = pts.filter(p => p[0] >= from)
-  const seq = (before ? [[from, before[1]]] : []).concat(inRange)
-  if (!seq.length) return ''
-  seq.push([now, seq[seq.length - 1][1]])
-  let d = `M${x(seq[0][0]).toFixed(1)},${y(seq[0][1]).toFixed(1)}`
-  for (let i = 1; i < seq.length; i++) d += ` H${x(seq[i][0]).toFixed(1)} V${y(seq[i][1]).toFixed(1)}`
-  const area = `${d} V${H} H${x(seq[0][0]).toFixed(1)} Z`
-  const c = color(cur)
-  const rs = (resets || []).filter(t => t >= from && t <= now).map(t => `<line class="rs" x1="${x(t).toFixed(1)}" x2="${x(t).toFixed(1)}" y1="0" y2="${H}"/>`).join('')
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-    <line class="gl" x1="0" x2="${W}" y1="${y(15)}" y2="${y(15)}" style="stroke:var(--bad);opacity:.25"/>
-    ${rs}<path d="${area}" fill="${c}" opacity=".12"/><path class="ln" d="${d}" stroke="${c}"/></svg>`
+function meterWindow(w) {
+  const v = pctVal(w.remaining), cls = v <= 15 ? 'bad' : v <= 40 ? 'warn' : ''
+  return '<div class="summary-meter"><div class="summary-labels"><span class="summary-name">' + esc(w.label) +
+    '</span><strong class="summary-percent">' + fmtPct(v) + '</strong></div>' +
+    '<div class="meter ' + cls + '" role="progressbar" aria-label="' + esc(w.label) + '剩餘額度" aria-valuenow="' + Math.round(v) +
+    '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + v + '%"></i></div></div>'
 }
-
-function detailWin(acctName, w) {
-  const key = `${acctName}|${w.label}`, now = Date.now(), from = now - RANGE * DAY
-  const pts = seriesOf(key), v = Math.max(0, Math.min(100, w.remaining))
-  const pr = project(w, pts, now), weekly = winLen(w.label) >= DAY
-  const inr = pts.filter(p => p[0] >= from)
-  const has = inr.length >= 2 && inr[inr.length - 1][0] - inr[0][0] >= 6 * 3600e3
-  if (!has) NEED_MORE = true
-  let body = ''
-  if (has) {
-    body = chart(pts, from, now, HIST.resets[key], v)
-    if (weekly) {
-      const days = dailyUse(pts, from, now), max = Math.max(10, ...days.map(x => x.use))
-      body += `<div class="days">${days.map(x => `<i class="${x.use ? '' : 'none'}" style="height:${x.use ? Math.max(10, x.use / max * 100) : 0}%" title="${new Date(x.t).getMonth() + 1}/${new Date(x.t).getDate()} 用掉 ${Math.round(x.use)}%"></i>`).join('')}</div>`
-    }
+function dateTicks(from, now) {
+  return [0,.5,1].map(p => {
+    const x = 36 + 288*p, t = from + (now - from)*p
+    return '<text class="axis" x="' + x + '" y="168" text-anchor="' +
+      (p === 0 ? 'start' : p === 1 ? 'end' : 'middle') + '">' + esc(fmtDT(t)) + '</text>'
+  }).join('')
+}
+function trendChart(pts, from, now, resets, accountIndex, windowIndex) {
+  const available = pts.filter(p => p[0] <= now)
+  const before = available.filter(p => p[0] < from).pop()
+  const inRange = available.filter(p => p[0] >= from)
+  const seq = (before ? [[from,before[1]]] : []).concat(inRange)
+  if (inRange.length < 2 || inRange[inRange.length-1][0] - inRange[0][0] < 20*60e3) {
+    return '<div class="info-empty">歷史採樣不足，暫無法繪製可靠趨勢。</div>'
   }
-  return `<div class="win">
-    <div class="top"><span class="label">${esc(w.label)}</span>
-      ${pr ? `<span class="chip ${pr.cls}" title="${esc(pr.tip)}">${esc(pr.text)}</span>` : ''}
-      <span class="pct" style="color:${color(v)}">${Math.round(v)}%</span></div>${body}</div>`
+  const x = t => (36 + (t-from) / (now-from)*288).toFixed(2)
+  const y = v => (142 - pctVal(v)*1.2).toFixed(2)
+  let path = 'M' + x(seq[0][0]) + ',' + y(seq[0][1])
+  for (let i=1;i<seq.length;i++) path += ' H' + x(seq[i][0]) + ' V' + y(seq[i][1])
+  // Only draw measured intervals; do not extrapolate the latest sample to the present.
+  const last = seq[seq.length-1], startX = x(seq[0][0]), lastX=x(last[0])
+  const area=path+' V142 H'+startX+' Z'
+  const lines = [0,50,100].map(v => '<line class="gridline" x1="36" y1="'+y(v)+'" x2="324" y2="'+y(v)+'"/>' +
+    '<text class="axis" x="27" y="'+(+y(v)+3)+'" text-anchor="end">'+v+'</text>').join('')
+  const mark = resets.filter(t => t >= from && t <= now).map(t =>
+    '<line class="reset-line" x1="'+x(t)+'" x2="'+x(t)+'" y1="12" y2="142"/>').join('')
+  return '<div class="chart-frame"><svg class="trend-chart" role="img" aria-label="歷史剩餘百分比階梯曲線" ' +
+    'data-ai="'+accountIndex+'" data-wi="'+windowIndex+'" data-from="'+from+'" data-to="'+now+'" viewBox="0 0 338 176" preserveAspectRatio="none">' +
+    lines+mark+'<path class="trend-area" d="'+area+'"/><path class="trend-line" d="'+path+'"/>' +
+    '<line class="chart-cursor" x1="'+lastX+'" x2="'+lastX+'" y1="12" y2="142"/>' +
+    dateTicks(from,now)+'</svg><div class="chart-tip" aria-hidden="true"></div></div>' +
+    '<div class="legend"><span><i class="legend-dot"></i>歷史剩餘</span><span><i class="legend-dash"></i>重置事件</span></div>'
 }
-
+function usageBuckets(pts, now, short) {
+  const count = short ? 5 : RANGE
+  const end = short ? now : new Date(new Date(now).setHours(24,0,0,0)).getTime()
+  const span = short ? 60*60e3 : DAY
+  const begin = end - count*span
+  const buckets = Array.from({length:count},(_,i)=>({start:begin+i*span,end:begin+(i+1)*span,used:0,observed:false}))
+  for (let i=1;i<pts.length;i++) {
+    const t=pts[i][0], b=buckets.find(x=>t>=x.start && t<x.end)
+    if (!b) continue
+    b.observed=true
+    const delta=pts[i-1][1]-pts[i][1]
+    if (delta>0 && delta<=100) b.used+=delta
+  }
+  return buckets
+}
+function usageChart(pts, now, short) {
+  const b=usageBuckets(pts,now,short)
+  const usable=pts.filter(p=>p[0]>=b[0].start && p[0]<=now)
+  if (usable.length < 2) return '<div class="info-empty">此區間採樣不足，尚無消耗統計。</div>'
+  const max=Math.max(5,...b.map(x=>x.used))
+  const bars=b.map(x=>{
+    const unknown=!x.observed, h=unknown ? 3 : Math.max(3,Math.round(x.used / max*69))
+    const title=fmtDT(x.start)+'：'+(unknown?'無取樣資料':'已觀察消耗 '+Math.round(x.used*10)/10+' 個百分點')
+    return '<div class="usage-bar '+(unknown?'unknown':'')+'" style="height:'+h+'px" title="'+esc(title)+'" aria-label="'+esc(title)+'"></div>'
+  }).join('')
+  return '<div class="usage-chart" role="img" aria-label="各時間區間的消耗量">'+bars+'</div>' +
+    '<p class="usage-caption">'+(short?'最近 5 小時，每小時統計':'最近 '+RANGE+' 天，每日統計') +
+    ' · 單位：百分點 · 灰色代表無取樣紀錄</p>'
+}
+function detailSection(account, ai, wi) {
+  const w=account.windows[wi], key=account.name+'|'+w.label, pts=seriesOf(key), resets=resetsOf(key)
+  const now=Date.now(), from=now-RANGE*DAY, prediction=forecast(w,pts)
+  const latest=resets.filter(t=>t<=now).pop()
+  const history=resets.filter(t=>t<=now).slice(-8).reverse()
+  const tabs=account.windows.map((item,i)=>'<button type="button" role="tab" data-window="'+i+'" data-ai="'+ai+'" '+
+    'aria-selected="'+(i===wi)+'" class="'+(i===wi?'active':'')+'">'+esc(item.label)+'</button>').join('')
+  const resetTxt=validTime(w.resetsAt)?resetText(w.resetsAt):'未提供重置時間'
+  return '<div class="detail-content" id="detail-'+ai+'">' +
+    '<div class="window-tabs" role="tablist" aria-label="額度類型">'+tabs+'</div>'+
+    '<div class="focus-row"><div><div class="metric-kicker">目前剩餘額度</div>'+
+    '<div class="metric-big">'+fmtPct(w.remaining)+'</div><div class="reset-at">'+esc(resetTxt)+'</div></div>'+
+    '<div><div class="metric-kicker" style="text-align:right">消耗預測</div><div class="forecast-status '+
+    (prediction?prediction.cls:'')+'">'+esc(prediction?prediction.title:'資料不足')+'</div></div></div>'+
+    '<section class="analytics-section"><div class="section-heading"><h3>歷史剩餘趨勢</h3><span class="section-note">'+RANGE+' 天 · 0–100%</span></div>'+
+    trendChart(pts,from,now,resets,ai,wi)+'</section>'+
+    '<section class="analytics-section"><div class="section-heading"><h3>消耗量統計</h3><span class="section-note">下降量累計</span></div>'+
+    usageChart(pts,now,winLen(w.label)<DAY && winLen(w.label)>0)+'</section>'+
+    '<section class="analytics-section"><div class="section-heading"><h3>重置紀錄</h3><span class="section-note">僅顯示有記錄的事件</span></div>'+
+    '<div class="analysis-grid"><div class="mini-metric"><div class="metric-kicker">最近重置</div><div class="mini-value">'+
+    esc(latest?fmtDT(latest):'尚無紀錄')+'</div></div><div class="mini-metric"><div class="metric-kicker">預定下次重置</div>'+
+    '<div class="mini-value">'+esc(validTime(w.resetsAt)?fmtDT(w.resetsAt):'未提供')+'</div></div></div>'+
+    '<details class="reset-history"><summary>歷史重置紀錄 ('+history.length+')</summary>'+
+    (history.length?'<ol>'+history.map(t=>'<li>'+esc(fmtDT(t))+'</li>').join('')+'</ol>':'<div class="usage-caption">目前沒有可查閱的重置紀錄。</div>')+
+    '</details></section>'+
+    '<section class="analytics-section"><div class="section-heading"><h3>額度預測</h3><span class="section-note">估算，非保證</span></div>'+
+    '<div class="forecast-copy">'+esc(prediction?prediction.description:'歷史取樣不足或無法判定使用速率，暫不提供耗盡預測。')+'</div>'+
+    '<p class="forecast-method">依本週期使用量與近期採樣消耗速率推估；異常尖峰或使用模式改變可能造成偏差。</p>'+
+    '</section></div>'
+}
 function renderDetail(data) {
-  NEED_MORE = false
-  document.getElementById('grid').innerHTML = (data.accounts || []).map(a => `
-    <section class="card"><h2>${esc(a.name)}<span>${esc(a.plan || '')}</span></h2>
-      ${(a.windows || []).map(w => detailWin(a.name, w)).join('') || '<div class="reset">沒有資料</div>'}
-    </section>`).join('') || '<div class="empty">沒有資料</div>'
-  document.getElementById('foot').textContent = NEED_MORE ? '部分曲線需要再累積幾天資料' : ''
+  const accounts=Array.isArray(data.accounts)?data.accounts:[]
+  const grid=document.getElementById('grid')
+  grid.innerHTML=accounts.map((account,ai)=>{
+    const windows=Array.isArray(account.windows)?account.windows:[]
+    const expanded=OPEN_ACCOUNT===ai
+    const alert=windows.map(w=>forecast(w,seriesOf(account.name+'|'+w.label))).filter(Boolean)
+      .sort((a,b)=>({bad:0,warn:1,ok:2}[a.cls]-{bad:0,warn:1,ok:2}[b.cls]))[0]
+    const active=Math.min(SELECTED_WINDOWS.get(ai)||0,Math.max(0,windows.length-1))
+    const tag=alert && alert.cls!=='ok' ? '<div class="summary-alert '+alert.cls+'">● '+esc(alert.title)+'</div>' : ''
+    return '<section class="account-card '+(expanded?'expanded':'')+'">' +
+      '<button type="button" class="account-trigger" data-ai="'+ai+'" aria-expanded="'+expanded+
+      '" aria-controls="detail-'+ai+'"><div class="account-title-row"><div><div class="account-title">'+esc(account.name)+
+      '</div><div class="account-plan">'+esc(account.plan||'')+'</div></div>'+
+      '<div class="account-indicator"><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div></div>'+
+      '<div class="summary-meters">'+(windows.length?windows.map(meterWindow).join(''):'<span class="reset">沒有額度資料</span>')+
+      '</div>'+tag+'</button>'+(expanded&&windows.length?detailSection(account,ai,active):'')+'</section>'
+  }).join('')||'<div class="empty">沒有資料</div>'
+  document.getElementById('foot').textContent=''
 }
+document.getElementById('grid').addEventListener('click',event=>{
+  if (!isDetail() || !LAST) return
+  const tab=event.target.closest('button[data-window]')
+  if (tab) { SELECTED_WINDOWS.set(+tab.dataset.ai,+tab.dataset.window);renderDetail(LAST);return }
+  const trigger=event.target.closest('button.account-trigger')
+  if (trigger) { const ai=+trigger.dataset.ai;OPEN_ACCOUNT=OPEN_ACCOUNT===ai?null:ai;renderDetail(LAST) }
+})
+document.getElementById('grid').addEventListener('pointermove',event=>{
+  const svg=event.target.closest('svg.trend-chart')
+  if (!svg || !LAST || !isDetail()) return
+  const ai=+svg.dataset.ai, wi=+svg.dataset.wi, account=LAST.accounts[ai]
+  if (!account || !account.windows || !account.windows[wi]) return
+  const key=account.name+'|'+account.windows[wi].label
+  const from=+svg.dataset.from, to=+svg.dataset.to
+  const pts=seriesOf(key).filter(p=>p[0]>=from && p[0]<=to)
+  if (!pts.length) return
+  const rect=svg.getBoundingClientRect()
+  const px=(event.clientX-rect.left)/rect.width*338
+  const t=from+Math.max(0,Math.min(1,(px-36)/288))*(to-from)
+  const nearest=pts.reduce((a,b)=>Math.abs(a[0]-t)<=Math.abs(b[0]-t)?a:b)
+  const cx=36+(nearest[0]-from)/(to-from)*288
+  const cursor=svg.querySelector('.chart-cursor'), tip=svg.parentElement.querySelector('.chart-tip')
+  cursor.setAttribute('x1',cx);cursor.setAttribute('x2',cx);cursor.style.display='block'
+  tip.textContent=fmtDT(nearest[0])+' · 剩餘 '+fmtPct(nearest[1])
+  tip.style.display='block'
+  tip.style.left=Math.max(22,Math.min(78,cx/338*100))+'%'
+})
+document.getElementById('grid').addEventListener('pointerout',event=>{
+  const svg=event.target.closest('svg.trend-chart')
+  if (!svg || (event.relatedTarget && svg.contains(event.relatedTarget))) return
+  const cursor=svg.querySelector('.chart-cursor'), tip=svg.parentElement.querySelector('.chart-tip')
+  if (cursor) cursor.style.display='none'
+  if (tip) tip.style.display='none'
+})
 
 function render(data) {
   LAST = data
@@ -299,21 +523,48 @@ async function load() {
   const p = new URLSearchParams(location.search)
   if (p.get('theme')) document.documentElement.dataset.theme = p.get('theme')
   if (p.get('layout') === 'panel') document.body.classList.add('panel')
-  if (p.get('layout') === 'detail') { document.body.classList.add('detail'); document.getElementById('seg').hidden = false }
-  const gist = p.get('g')
-  if (!gist) return render(SAMPLE)
-  try {
-    const res = await fetch(`https://api.github.com/gists/${encodeURIComponent(gist)}`, { cache: 'no-store' })
-    const g = await res.json()
-    const hf = g.files['history.json']
-    if (isDetail() && hf) {
-      try { HIST = JSON.parse(hf.truncated ? await (await fetch(hf.raw_url, { cache: 'no-store' })).text() : hf.content) } catch (e) { HIST = null }
+  if (p.get('layout') === 'detail') {
+    document.body.classList.add('detail')
+    const seg = document.getElementById('seg')
+    seg.hidden = false
+    if (!document.querySelector('.detail-toolbar')) {
+      const bar = document.querySelector('.tools.bar')
+      const toolbar = document.createElement('div')
+      toolbar.className = 'detail-toolbar'
+      document.querySelector('header').after(toolbar)
+      toolbar.appendChild(bar)
+      toolbar.appendChild(seg)
+      document.querySelector('header h1').textContent = 'Quota Monitor'
     }
-    render(JSON.parse(g.files['quota.json'].content))
+  }
+  const gist = p.get('g')
+  if (!gist) { HIST = null; return render(SAMPLE) }
+  try {
+    const res = await fetch('https://api.github.com/gists/' + encodeURIComponent(gist), {cache:'no-store'})
+    if (!res.ok) throw new Error('Gist request failed')
+    const g = await res.json()
+    if (!g.files || !g.files['quota.json']) throw new Error('Quota data missing')
+    const qf = g.files['quota.json'], hf = g.files['history.json']
+    const quotaText = qf.truncated ? await (await fetch(qf.raw_url,{cache:'no-store'})).text() : qf.content
+    const next = JSON.parse(quotaText)
+    if (!next || !Array.isArray(next.accounts)) throw new Error('Invalid quota data')
+    let history = null
+    if (isDetail() && hf) {
+      try {
+        const body = hf.truncated ? await (await fetch(hf.raw_url,{cache:'no-store'})).text() : hf.content
+        const parsed=JSON.parse(body)
+        if (parsed && Array.isArray(parsed.keys) && Array.isArray(parsed.rows)) history=parsed
+      } catch (e) { history=null }
+    }
+    HIST=history
+    render(next)
   } catch (e) {
-    document.getElementById('grid').innerHTML = '<div class="empty">讀不到資料</div>'
+    const foot=document.getElementById('foot')
+    foot.textContent='更新失敗，請檢查資料來源後重試。'
+    if (!LAST) document.getElementById('grid').innerHTML='<div class="empty">讀不到資料</div>'
   }
 }
+
 document.getElementById('seg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return
   RANGE = +b.dataset.d
