@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Quota Calendar｜AI 使用日曆</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#fafaf8;--paper:#fff;--muted:#7c818b;--ink:#20242d;--line:#e6e8eb;--soft:#f5f6f7;
+  --claude:#c78668;--gpt:#5088df;--google:#62ab91;--focus:#467ce0;
+  --warn:#d89c3f;--danger:#d66b67;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
+}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#141619;--paper:#1c1f23;--muted:#a3a8b1;--ink:#eff0f3;--line:#3b4047;--soft:#292d33}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:13px}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+main{max-width:900px;margin:0 auto;padding:16px clamp(10px,3vw,20px) 24px}
+.header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:15px}
+.brand{font-weight:750;font-size:18px;letter-spacing:-.4px}
+.subtitle{font-size:11px;color:var(--muted);margin-top:3px}
+.top-actions{display:flex;gap:7px;align-items:center}
+.icon-btn,.today-btn{height:31px;background:var(--paper);border:1px solid var(--line);border-radius:8px;color:var(--ink)}
+.icon-btn{width:32px;font-size:19px;line-height:1}
+.icon-btn:hover,.today-btn:hover{background:var(--soft)}
+.today-btn{padding:0 10px;font-size:11px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.month-nav{display:flex;gap:7px;align-items:center}
+.month-name{font-size:16px;font-weight:720;min-width:130px;text-align:center;letter-spacing:-.2px}
+.service-legend,.legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.swatch{display:inline-block;width:9px;height:9px;border-radius:3px}
+.s-claude{background:var(--claude)}.s-chatgpt{background:var(--gpt)}.s-google{background:var(--google)}
+.calendar-wrap{border:1px solid var(--line);background:var(--paper);padding:9px;border-radius:13px}
+.month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.week-name{font-size:11px;text-align:center;color:var(--muted);padding:4px 0 10px}
+.day{min-width:0;height:79px;display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:3px;padding:6px 3px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);text-align:center;position:relative}
+.day:hover{background:var(--soft)}
+.day.selected{box-shadow:inset 0 0 0 1px var(--focus)}
+.day.today:not(.reset){border-color:var(--focus)}
+.day.reset{border:2px solid transparent;background:linear-gradient(var(--paper),var(--paper)) padding-box,var(--reset-ring) border-box;padding:5px 2px}
+.day.reset:hover{background:linear-gradient(var(--soft),var(--soft)) padding-box,var(--reset-ring) border-box}
+.day.reset.selected{box-shadow:inset 0 0 0 1px var(--focus)}
+.day-number{display:inline-block;min-width:21px;line-height:20px;border-radius:12px;font-size:12px;font-weight:550;align-self:center}
+.day.today .day-number{background:var(--focus);color:#fff;font-weight:700}
+.heat-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;width:100%;margin-bottom:3px}
+.heat-cell{display:flex;flex-direction:column;gap:2px;align-items:center;min-width:0}
+.heat-block{width:100%;max-width:24px;height:21px;border-radius:4px;background:var(--soft);border:1px solid rgba(128,128,128,.07)}
+.heat-value{font-size:9px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;line-height:11px}
+.empty-day{height:79px;border:1px solid transparent}
+.future-label{font-size:9px;color:var(--muted);align-self:center;margin-bottom:6px;min-height:31px;display:flex;align-items:end;text-align:center}
+.legend{margin-top:12px}
+.legend-border{width:13px;height:11px;border:2px solid var(--claude);border-radius:3px}
+.legend-note{font-size:10px;color:var(--muted);line-height:1.6}
+.details-panel{margin-top:18px;border-top:1px solid var(--line);padding-top:17px}
+.details-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.details-title{font-size:17px;font-weight:700}
+.details-kicker{font-size:11px;color:var(--muted)}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:30px;padding:2px 7px;font-size:10px;color:var(--muted);margin-left:5px;font-weight:500}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.metric{min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--paper)}
+.metric-top{display:flex;align-items:center;gap:6px;font-weight:600;font-size:11px}
+.metric-value{font-weight:760;font-size:19px;letter-spacing:-.4px;margin-top:7px;white-space:nowrap}
+.metric-value small{font-size:11px;font-weight:500;color:var(--muted);letter-spacing:0}
+.mini-track{height:6px;border-radius:50px;background:var(--soft);margin-top:9px;overflow:hidden}
+.mini-fill{height:100%;border-radius:50px}
+.note{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0}
+.section-heading{font-size:13px;font-weight:700;margin:19px 0 10px}
+.accounts{display:grid;grid-template-columns:1fr;gap:9px}
+.account{border:1px solid var(--line);border-radius:11px;background:var(--paper);padding:11px 12px}
+.account-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px}
+.account-name{font-size:12px;font-weight:700}
+.account-plan{font-size:10px;color:var(--muted)}
+.window{display:grid;grid-template-columns:minmax(82px,1.4fr) minmax(65px,2fr) 42px;gap:7px;align-items:center;margin:9px 0}
+.window-name{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meter{height:7px;background:var(--soft);border-radius:100px;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:100px}
+.window-percent{text-align:right;font-size:11px;font-weight:720;font-variant-numeric:tabular-nums}
+.reset-sub{font-size:10px;color:var(--muted);margin:3px 0 0;line-height:1.5}
+.event-list{display:flex;flex-direction:column;gap:8px}
+.event{display:flex;gap:9px;justify-content:space-between;align-items:baseline;padding:10px 11px;background:var(--paper);border:1px solid var(--line);border-radius:9px}
+.event-name{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px}
+.event-time{font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.empty-state{border:1px dashed var(--line);border-radius:10px;padding:16px;color:var(--muted);font-size:12px;line-height:1.6}
+.source{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;padding:13px 0 0;color:var(--muted);font-size:10px}
+.source.stale{color:var(--warn)}
+.error{padding:10px 12px;margin-bottom:13px;border-radius:8px;border:1px solid var(--danger);color:var(--danger);font-size:12px;line-height:1.5}
+.setup{border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:15px;margin:12px 0}
+.setup h2{margin:0 0 6px;font-size:14px}
+.setup p{font-size:12px;color:var(--muted);line-height:1.7}
+.setup form{display:flex;gap:6px}
+.setup input{min-width:0;flex:1;border:1px solid var(--line);border-radius:7px;padding:9px;background:var(--bg);color:var(--ink)}
+.setup button{border:0;background:var(--focus);color:#fff;border-radius:7px;padding:0 13px}
+.hidden{display:none!important}
+@media (max-width:390px){
+  main{padding:12px 8px}
+  .brand{font-size:16px}.month-name{min-width:110px;font-size:15px}
+  .calendar-wrap{padding:5px}.month-grid{gap:2px}
+  .day,.empty-day{height:73px}.day{padding:4px 2px}.day.reset{padding:3px 1px}
+  .heat-row{gap:2px}.heat-block{height:17px}.heat-value{font-size:8px}
+  .metrics{gap:5px}.metric{padding:8px 5px}.metric-value{font-size:16px}
+  .service-legend{gap:7px}.legend-item{font-size:10px}
+  .window{grid-template-columns:minmax(78px,1.4fr) minmax(50px,2fr) 36px;gap:5px}
+}
+@media (prefers-reduced-motion:no-preference){button,.day{transition:background-color .15s ease,box-shadow .15s ease}}
+</style>
+</head>
+<body>
+<main>
+  <header class="header">
+    <div><div class="brand">Quota Calendar</div><div class="subtitle">AI 使用日曆 · 過去看消耗，今天看額度</div></div>
+    <div class="top-actions"><button type="button" class="icon-btn" id="refresh" title="重新讀取" aria-label="重新讀取最新額度">↻</button></div>
+  </header>
+  <div id="alert" class="error hidden" role="alert"></div>
+  <section id="setup" class="setup hidden">
+    <h2>連接現有額度資料</h2>
+    <p>貼上原本 Widget 的嵌入網址（含 ?g=），或直接貼上 Gist ID。此頁沿用原本的 quota.json 與 history.json，不會修改資料來源。</p>
+    <form id="setup-form"><input id="gist-input" aria-label="既有 Widget 網址或 Gist ID" placeholder="原本 Widget 網址或 Gist ID" autocomplete="off" required><button type="submit">套用</button></form>
+  </section>
+  <section id="dashboard">
+    <div class="toolbar">
+      <div class="month-nav">
+        <button type="button" class="icon-btn" id="prev" aria-label="上個月">‹</button>
+        <div class="month-name" id="month-label"></div>
+        <button type="button" class="icon-btn" id="next" aria-label="下個月">›</button>
+        <button type="button" class="today-btn" id="today">今天</button>
+      </div>
+      <div class="service-legend" id="services"></div>
+    </div>
+    <section class="calendar-wrap" aria-label="AI 額度月曆">
+      <div id="calendar" class="month-grid"></div>
+    </section>
+    <div class="legend">
+      <span class="legend-item"><span class="swatch" style="background:var(--claude)"></span>Claude</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--gpt)"></span>ChatGPT</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--google)"></span>Google</span>
+      <span class="legend-item"><span class="legend-border"></span>彩色外框：每週重置</span>
+    </div>
+    <p class="legend-note">三格代表各服務每週額度的已觀測消耗平均下限（pp），顏色越深代表使用越多。空白為取樣不足。重置外框不取代當日用量。</p>
+    <section id="selected-details" class="details-panel" aria-live="polite"></section>
+    <footer id="source" class="source"></footer>
+  </section>
+</main>
+<script>
+(function(){
+"use strict";
+var TZ="Asia/Taipei", DAY=86400000, SERVICE=["Claude","ChatGPT","Google"];
+var PALETTE=["#c78668","#5088df","#62ab91"], LEVELS=[
+  ["#f5e9e3","#edccb9","#daac91","#c78668","#a6694e"],
+  ["#edf3fe","#d6e5fc","#a4c5f5","#6b9ce9","#3671c9"],
+  ["#edf7f2","#d0ebdd","#a1d6c0","#62ab91","#34866d"]
+];
+var params=new URLSearchParams(location.search),gist=params.get("g"),demo=params.get("demo")==="1";
+if(params.get("theme")==="dark")document.documentElement.dataset.theme="dark";
+var TODAY=localKey(Date.now()),selected=TODAY,displayMonth=TODAY.slice(0,7);
+var CURRENT=null,HISTORY=null,lastError="";
+var formatDate=new Intl.DateTimeFormat("zh-TW",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"});
+var formatClock=new Intl.DateTimeFormat("zh-TW",{timeZone:TZ,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false});
+
+function pad(n){return String(n).padStart(2,"0")}
+function escapeHTML(v){return String(v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function localKey(t){
+  var parts=new Intl.DateTimeFormat("en-US",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(t));
+  var get=function(k){return parts.find(function(p){return p.type===k}).value};
+  return get("year")+"-"+pad(+get("month"))+"-"+pad(+get("day"))
+}
+function dateLabel(t){return formatClock.format(new Date(t))}
+function isNum(v){return v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v))}
+function pct(v){return Math.max(0,Math.min(100,Number(v)))}
+function dateText(key){var x=key.split("-");return +x[1]+"/"+(+x[2])}
+function serviceOf(name){if(/^Claude\b/i.test(name))return 0;if(/^ChatGPT\b|^GPT\s*\d/i.test(name))return 1;if(/^Google\b/i.test(name))return 2;return -1}
+function weekly(label){return /每週|weekly|7\s*day/i.test(label)}
+function five(label){return /5\s*小時|5h/i.test(label)}
+function series(key){
+  if(!HISTORY||!Array.isArray(HISTORY.keys)||!Array.isArray(HISTORY.rows))return [];
+  var ix=HISTORY.keys.indexOf(key);
+  if(ix<0)return [];
+  return HISTORY.rows.filter(function(row){return Array.isArray(row)&&isNum(row[0])&&Number(row[0])>0&&isNum(row[ix+1])})
+    .map(function(row){return [Number(row[0]),pct(row[ix+1])]}).sort(function(a,b){return a[0]-b[0]});
+}
+function resetTimes(key){
+  var obj=HISTORY&&HISTORY.resets&&HISTORY.resets[key];
+  return Array.isArray(obj)?obj.filter(function(t){return isNum(t)&&Number(t)>0}).map(Number):[];
+}
+function tracks(){
+  var result=[];
+  (CURRENT&&CURRENT.accounts||[]).forEach(function(acc){
+    (acc.windows||[]).forEach(function(w){
+      if(!weekly(String(w.label||"")))return;
+      var service=serviceOf(String(acc.name||""));
+      if(service<0)return;
+      result.push({service:service,account:acc.name,label:w.label,key:acc.name+"|"+w.label,window:w})
+    })
+  });
+  return result
+}
+function observedDaily(track){
+  var pts=series(track.key),resets=resetTimes(track.key),days={};
+  for(var i=1;i<pts.length;i++){
+    var prev=pts[i-1],cur=pts[i],delta=prev[1]-cur[1],date=localKey(cur[0]);
+    if(localKey(prev[0])!==date||cur[0]-prev[0]>12*3600000||cur[0]<=prev[0])continue;
+    if(resets.some(function(t){return t>prev[0]&&t<=cur[0]}))continue;
+    if(delta<0)continue; // Refill or reset not explicitly recorded.
+    if(!days[date])days[date]={sum:0,pairs:0};
+    days[date].sum+=delta;days[date].pairs++;
+  }
+  return days
+}
+function dailyStats(){
+  var result={},ts=tracks();
+  ts.forEach(function(tr){
+    var per=observedDaily(tr);
+    Object.keys(per).forEach(function(d){
+      if(!result[d])result[d]=SERVICE.map(function(){return {sum:0,covered:0,total:0}});
+      result[d][tr.service].sum+=per[d].sum;
+      result[d][tr.service].covered++;
+    })
+  });
+  Object.keys(result).forEach(function(d){
+    for(var i=0;i<3;i++)result[d][i].total=ts.filter(function(t){return t.service===i}).length
+  });
+  return result
+}
+function eventMap(){
+  var map={};
+  function add(t,service,name,kind){
+    if(!isNum(t)||+t<=0)return;
+    var d=localKey(Number(t));
+    if(!map[d])map[d]=[];
+    if(map[d].some(function(e){return e.name===name&&e.at===Number(t)}))return;
+    map[d].push({service:service,name:name,at:Number(t),kind:kind})
+  }
+  tracks().forEach(function(tr){
+    resetTimes(tr.key).forEach(function(t){add(t,tr.service,tr.account+" · "+tr.label,"歷史重置")});
+    if(isNum(tr.window.resetsAt)&&Number(tr.window.resetsAt)>=Date.now()-300000)
+      add(tr.window.resetsAt,tr.service,tr.account+" · "+tr.label,"預定重置");
+  });
+  return map
+}
+function level(v){return v<1?0:v<8?1:v<16?2:v<30?3:4}
+function statFor(stats,key,i){
+  var n=stats[key]&&stats[key][i];
+  if(!n||!n.covered||!n.total)return null;
+  return {value:Math.round(n.sum/n.total*10)/10,covered:n.covered,total:n.total}
+}
+function numText(v){return Number(v).toFixed(Number.isInteger(v)?0:1)}
+function heatRow(key,stats){
+  var out='<div class="heat-row">';
+  for(var i=0;i<3;i++){
+    var s=statFor(stats,key,i),value=s?numText(s.value):"—";
+    var shade=s?LEVELS[i][level(s.value)]:"var(--soft)";
+    out+='<div class="heat-cell" title="'+escapeHTML(SERVICE[i]+(s?" 已觀測平均下限 "+value+" pp，"+s.covered+"/"+s.total+" 項有資料":" 取樣不足"))+'"><span class="heat-block" style="background:'+shade+'"></span><span class="heat-value">'+value+'</span></div>';
+  }
+  return out+'</div>'
+}
+function resetRing(events){
+  var unique=[...new Set(events.map(function(e){return e.service}))].sort();
+  if(!unique.length)return "";
+  if(unique.length===1)return PALETTE[unique[0]];
+  var parts=unique.map(function(x,i){return PALETTE[x]+" "+(i/unique.length*100)+"% "+((i+1)/unique.length*100)+"%"}).join(",");
+  return "conic-gradient("+parts+")"
+}
+function drawCalendar(){
+  var ym=displayMonth.split("-").map(Number),y=ym[0],m=ym[1];
+  document.getElementById("month-label").textContent=y+" 年 "+m+" 月";
+  var first=new Date(Date.UTC(y,m-1,1)),start=first.getUTCDay(),length=new Date(Date.UTC(y,m,0)).getUTCDate(),count=Math.ceil((start+length)/7)*7;
+  var stats=dailyStats(),events=eventMap();
+  var html=["日","一","二","三","四","五","六"].map(function(x){return '<div class="week-name">'+x+'</div>'}).join("");
+  for(var i=0;i<count;i++){
+    var d=i-start+1;
+    if(d<1||d>length){html+='<div class="empty-day"></div>';continue}
+    var key=y+"-"+pad(m)+"-"+pad(d),ev=events[key]||[],past=key<=TODAY,ring=resetRing(ev);
+    var cls="day"+(key===selected?" selected":"")+(key===TODAY?" today":"")+(ev.length?" reset":"");
+    var style=ring?' style="--reset-ring:'+(ring.startsWith("conic")?ring:"linear-gradient("+ring+","+ring+")")+'"':'';
+    var label=ev.length?ev.length+" 次週額度重置":"";
+    html+='<button type="button" class="'+cls+'" data-date="'+key+'" aria-label="'+key+(label?"；"+label:"")+'" aria-pressed="'+(key===selected)+'"'+style+'>'+
+      '<span class="day-number">'+d+'</span>'+
+      (past?heatRow(key,stats):'<span class="future-label">'+(ev.length?ev.length+" 項重置":"")+'</span>')+
+      '</button>';
+  }
+  document.getElementById("calendar").innerHTML=html;
+}
+function meter(v,clr){return '<div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(v)+'"><i style="width:'+v+'%;background:'+clr+'"></i></div>'}
+function metricCards(key){
+  var stats=dailyStats(),out='<div class="metrics">';
+  for(var i=0;i<3;i++){
+    var s=statFor(stats,key,i),value=s?numText(s.value):"—",pctVal=s?Math.min(100,s.value/50*100):0;
+    out+='<div class="metric"><div class="metric-top"><span class="swatch" style="background:'+PALETTE[i]+'"></span>'+SERVICE[i]+'</div>'+
+      '<div class="metric-value">'+value+' <small>'+(s?"pp":"")+'</small></div>'+
+      '<div class="mini-track"><div class="mini-fill" style="background:'+PALETTE[i]+';width:'+pctVal+'%"></div></div>'+
+      '<div class="reset-sub">'+(s?s.covered+"/"+s.total+" 項有觀測":"取樣不足")+'</div></div>';
+  }
+  return out+'</div>'
+}
+function renderCurrent(){
+  if(!CURRENT)return '<div class="empty-state">沒有目前額度資料。</div>';
+  var out='<h3 class="section-heading">目前剩餘額度</h3><div class="accounts">';
+  (CURRENT.accounts||[]).forEach(function(acc){
+    var sv=serviceOf(acc.name),clr=PALETTE[sv]||"var(--focus)";
+    out+='<section class="account"><div class="account-head"><span class="account-name">'+escapeHTML(acc.name)+'</span><span class="account-plan">'+escapeHTML(acc.plan||"")+'</span></div>';
+    (acc.windows||[]).forEach(function(w){
+      var v=isNum(w.remaining)?pct(w.remaining):null;
+      out+='<div class="window"><span class="window-name" title="'+escapeHTML(w.label)+'">'+escapeHTML(w.label)+'</span>'+
+        (v===null?'<div class="meter"></div>':meter(v,v<=15?"var(--danger)":v<=40?"var(--warn)":clr))+
+        '<span class="window-percent">'+(v===null?"—":numText(v)+"%")+'</span></div>'+
+        '<div class="reset-sub">下次重置：'+(isNum(w.resetsAt)&&Number(w.resetsAt)>0?escapeHTML(dateLabel(Number(w.resetsAt))):"尚未提供")+'</div>';
+    });
+    out+='</section>';
+  });
+  return out+'</div>';
+}
+function renderWindowBreakdown(key){
+  var t=tracks(),out='<h3 class="section-heading">個別每週額度觀測</h3><div class="accounts">';
+  t.forEach(function(tr){
+    var by=observedDaily(tr)[key],v=by?Math.round(by.sum*10)/10:null;
+    out+='<div class="account"><div class="account-head"><span class="account-name">'+escapeHTML(tr.account)+'</span><span class="account-plan">'+escapeHTML(tr.label)+'</span></div>'+
+    '<div class="window"><span class="window-name">已觀測下降</span>'+meter(v===null?0:Math.min(100,v),PALETTE[tr.service])+
+    '<span class="window-percent">'+(v===null?"—":numText(v)+" pp")+'</span></div></div>';
+  });
+  return out+'</div>';
+}
+function renderEvents(key){
+  var es=eventMap()[key]||[];
+  if(!es.length)return '<div class="empty-state">此日期沒有已知的每週額度重置紀錄或預定事件。</div>';
+  return '<div class="event-list">'+es.sort(function(a,b){return a.at-b.at}).map(function(e){
+    return '<div class="event"><span class="event-name"><span class="swatch" style="background:'+PALETTE[e.service]+'"></span>'+escapeHTML(e.name)+'</span>'+
+      '<span class="event-time">'+escapeHTML(dateLabel(e.at))+' · '+e.kind+'</span></div>'
+  }).join("")+'</div>';
+}
+function drawDetails(){
+  var past=selected<TODAY,today=selected===TODAY;
+  var out='<div class="details-head"><div class="details-title">'+dateText(selected)+(today?'<span class="pill">今天</span>':past?'<span class="pill">歷史</span>':'<span class="pill">未來</span>')+'</div>'+
+    '<div class="details-kicker">'+(today?"即時額度與今日已觀測消耗":past?"每日使用量回顧":"預定重置")+'</div></div>';
+  if(past||today){
+    out+=metricCards(selected);
+    out+='<p class="note">顯示每個服務旗下「每週額度」追蹤項目的已觀測下降總量 ÷ 追蹤項目數（pp），屬保守下限，並非實際 Token 數。跨日、跨重置或取樣間隔過長的變化不強制分配；空白代表資料不足。</p>';
+    if(today)out+=renderCurrent();
+    else out+=renderWindowBreakdown(selected);
+    if((eventMap()[selected]||[]).length)out+='<h3 class="section-heading">當日每週額度重置</h3>'+renderEvents(selected)
+  }else{
+    out+='<h3 class="section-heading">每週額度重置</h3>'+renderEvents(selected);
+    out+='<p class="note">未來不預填消耗量；僅顯示目前資料提供的下次重置時間，不推算更遠的週期。</p>';
+  }
+  document.getElementById("selected-details").innerHTML=out;
+}
+function draw(){
+  document.getElementById("dashboard").classList.toggle("hidden",!CURRENT);
+  document.getElementById("setup").classList.toggle("hidden",!!CURRENT||!!gist||demo);
+  if(!CURRENT)return;
+  drawCalendar();drawDetails();
+  var age=Date.now()-Number(CURRENT.updatedAt||0);
+  var footer=document.getElementById("source");
+  footer.classList.toggle("stale",!Number.isFinite(age)||age>12*3600000);
+  footer.textContent=(demo?"展示資料 · 僅供確認版面":"資料來源：既有 Gist")+
+    "　｜　"+(isNum(CURRENT.updatedAt)?"最後更新 "+dateLabel(Number(CURRENT.updatedAt)):"尚無更新時間")+
+    (HISTORY?"　｜　含歷史紀錄":"　｜　缺少歷史紀錄");
+}
+function moveMonth(n){
+  var p=displayMonth.split("-").map(Number),d=new Date(Date.UTC(p[0],p[1]-1+n,1));
+  displayMonth=d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1);
+  var last=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate(),day=Math.min(+selected.slice(8),last);
+  selected=displayMonth+"-"+pad(day);
+  draw()
+}
+function showError(t){document.getElementById("alert").textContent=t;document.getElementById("alert").classList.remove("hidden")}
+function clearError(){document.getElementById("alert").classList.add("hidden")}
+async function fetchFile(f){
+  if(!f)return null;
+  if(!f.truncated&&typeof f.content==="string")return f.content;
+  if(!f.raw_url||!/^https:\/\/(?:gist\.githubusercontent\.com|raw\.githubusercontent\.com)\//.test(f.raw_url))throw new Error("無法安全讀取歷史資料");
+  var r=await fetch(f.raw_url,{cache:"no-store"});if(!r.ok)throw new Error("無法下載 Gist 檔案");
+  return await r.text();
+}
+async function load(){
+  if(demo){CURRENT=createDemo();HISTORY=createDemoHistory(CURRENT);clearError();draw();return}
+  if(!gist){CURRENT=null;HISTORY=null;draw();return}
+  if(!/^[a-f\d]{20,64}$/i.test(gist)){showError("Gist ID 格式不正確，請使用原本 Widget 網址的 ?g= 參數。");return}
+  try{
+    var r=await fetch("https://api.github.com/gists/"+encodeURIComponent(gist),{cache:"no-store"});
+    if(!r.ok)throw new Error("Gist 讀取失敗（HTTP "+r.status+"）");
+    var result=await r.json();
+    if(!result.files||!result.files["quota.json"])throw new Error("找不到 quota.json");
+    var next=JSON.parse(await fetchFile(result.files["quota.json"]));
+    if(!next||!Array.isArray(next.accounts))throw new Error("quota.json 格式不正確");
+    var history=null;
+    if(result.files["history.json"]){
+      try{
+        var parsed=JSON.parse(await fetchFile(result.files["history.json"]));
+        if(parsed&&Array.isArray(parsed.keys)&&Array.isArray(parsed.rows))history=parsed;
+      }catch(e){history=null}
+    }
+    CURRENT=next;HISTORY=history;clearError();draw()
+  }catch(err){showError("無法更新資料："+err.message+"。"+(CURRENT?"已保留上次成功取得的資料。":"請確認來源或重新整理。"));draw()}
+}
+function createDemo(){
+  return {updatedAt:Date.now(),accounts:[
+    {name:"Claude",plan:"Claude Code",windows:[{label:"5 小時",remaining:76,resetsAt:Date.now()+2*3600000},{label:"每週",remaining:23,resetsAt:Date.now()+27*3600000}]},
+    {name:"ChatGPT 1",plan:"Plus",windows:[{label:"5 小時",remaining:100,resetsAt:Date.now()+3*3600000},{label:"每週",remaining:71,resetsAt:Date.now()+5*DAY}]},
+    {name:"ChatGPT 2",plan:"Plus",windows:[{label:"5 小時",remaining:99,resetsAt:Date.now()+3*3600000},{label:"每週",remaining:92,resetsAt:Date.now()+5*DAY}]},
+    {name:"Google AI Pro",plan:"Antigravity",windows:[{label:"Gemini · 5 小時",remaining:94,resetsAt:Date.now()+2*3600000},{label:"Gemini · 每週",remaining:77,resetsAt:Date.now()+5*DAY},{label:"Claude / GPT-OSS · 每週",remaining:47,resetsAt:Date.now()+4*DAY},{label:"Gemini 4 Argon · 每週",remaining:83,resetsAt:Date.now()+5*DAY}]}
+  ]}
+}
+function createDemoHistory(current){
+  var list=[];
+  current.accounts.forEach(function(a){a.windows.forEach(function(w){if(weekly(w.label))list.push(a.name+"|"+w.label)})});
+  var rows=[];
+  for(var d=24;d>=0;d--){
+    var start=Date.now()-d*DAY,t1=start-(start%DAY)+3*3600000,t2=t1+6*3600000;
+    var a=[t1],b=[t2];
+    list.forEach(function(k,i){var before=70+(d*7+i*13)%29,loss=(d*5+i*8)%22;a.push(before);b.push(before-loss)});
+    rows.push(a,b);
+  }
+  return {keys:list,rows:rows,resets:{}};
+}
+document.getElementById("calendar").addEventListener("click",function(e){
+  var btn=e.target.closest("button[data-date]");if(!btn)return;
+  selected=btn.dataset.date;drawCalendar();drawDetails()
+});
+document.getElementById("prev").addEventListener("click",function(){moveMonth(-1)});
+document.getElementById("next").addEventListener("click",function(){moveMonth(1)});
+document.getElementById("today").addEventListener("click",function(){TODAY=localKey(Date.now());displayMonth=TODAY.slice(0,7);selected=TODAY;draw()});
+document.getElementById("refresh").addEventListener("click",load);
+document.getElementById("setup-form").addEventListener("submit",function(e){
+  e.preventDefault();
+  var entered=document.getElementById("gist-input").value.trim(),id=entered;
+  try{var u=new URL(entered);id=u.searchParams.get("g")||u.pathname.split("/").filter(Boolean).pop()}catch(err){}
+  if(!/^[a-f\d]{20,64}$/i.test(id)){showError("請貼上含有 ?g= 的既有 Widget 網址，或有效 Gist ID。");return}
+  var url=new URL(location.href);url.searchParams.set("g",id);url.searchParams.delete("demo");location.href=url.toString()
+});
+load();
+setInterval(function(){if(!document.hidden)load()},5*60*1000);
+})();
+</script>
+</body>
+</html>
