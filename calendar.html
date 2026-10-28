@@ -20,19 +20,16 @@ body{margin:0;background:var(--bg);color:var(--ink);font-size:13px}
 button,input{font:inherit}
 button{cursor:pointer}
 button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
-main{max-width:900px;margin:0 auto;padding:16px clamp(10px,3vw,20px) 24px}
-.header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:15px}
-.brand{font-weight:750;font-size:18px;letter-spacing:-.4px}
-.subtitle{font-size:11px;color:var(--muted);margin-top:3px}
+main{max-width:900px;margin:0 auto;padding:12px clamp(10px,3vw,20px) 20px}
 .top-actions{display:flex;gap:7px;align-items:center}
 .icon-btn,.today-btn{height:31px;background:var(--paper);border:1px solid var(--line);border-radius:8px;color:var(--ink)}
 .icon-btn{width:32px;font-size:19px;line-height:1}
 .icon-btn:hover,.today-btn:hover{background:var(--soft)}
 .today-btn{padding:0 10px;font-size:11px}
-.toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:11px}
 .month-nav{display:flex;gap:7px;align-items:center}
 .month-name{font-size:16px;font-weight:720;min-width:130px;text-align:center;letter-spacing:-.2px}
-.service-legend,.legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
 .swatch{display:inline-block;width:9px;height:9px;border-radius:3px}
 .s-claude{background:var(--claude)}.s-chatgpt{background:var(--gpt)}.s-google{background:var(--google)}
@@ -56,11 +53,9 @@ main{max-width:900px;margin:0 auto;padding:16px clamp(10px,3vw,20px) 24px}
 .future-label{font-size:9px;color:var(--muted);align-self:center;margin-bottom:6px;min-height:31px;display:flex;align-items:end;text-align:center}
 .legend{margin-top:12px}
 .legend-border{width:13px;height:11px;border:2px solid var(--claude);border-radius:3px}
-.legend-note{font-size:10px;color:var(--muted);line-height:1.6}
-.details-panel{margin-top:18px;border-top:1px solid var(--line);padding-top:17px}
+.details-panel{margin-top:15px;border-top:1px solid var(--line);padding-top:13px}
 .details-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
 .details-title{font-size:17px;font-weight:700}
-.details-kicker{font-size:11px;color:var(--muted)}
 .pill{display:inline-block;border:1px solid var(--line);border-radius:30px;padding:2px 7px;font-size:10px;color:var(--muted);margin-left:5px;font-weight:500}
 .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .metric{min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--paper)}
@@ -69,7 +64,6 @@ main{max-width:900px;margin:0 auto;padding:16px clamp(10px,3vw,20px) 24px}
 .metric-value small{font-size:11px;font-weight:500;color:var(--muted);letter-spacing:0}
 .mini-track{height:6px;border-radius:50px;background:var(--soft);margin-top:9px;overflow:hidden}
 .mini-fill{height:100%;border-radius:50px}
-.note{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0}
 .section-heading{font-size:13px;font-weight:700;margin:19px 0 10px}
 .accounts{display:grid;grid-template-columns:1fr;gap:9px}
 .account{border:1px solid var(--line);border-radius:11px;background:var(--paper);padding:11px 12px}
@@ -112,14 +106,10 @@ main{max-width:900px;margin:0 auto;padding:16px clamp(10px,3vw,20px) 24px}
 </head>
 <body>
 <main>
-  <header class="header">
-    <div><div class="brand">Quota Calendar</div><div class="subtitle">AI 使用日曆 · 過去看消耗，今天看額度</div></div>
-    <div class="top-actions"><button type="button" class="icon-btn" id="refresh" title="重新讀取" aria-label="重新讀取最新額度">↻</button></div>
-  </header>
   <div id="alert" class="error hidden" role="alert"></div>
   <section id="setup" class="setup hidden">
     <h2>連接現有額度資料</h2>
-    <p>貼上原本 Widget 的嵌入網址（含 ?g=），或直接貼上 Gist ID。此頁沿用原本的 quota.json 與 history.json，不會修改資料來源。</p>
+    <p>輸入既有 Widget 網址或 Gist ID。</p>
     <form id="setup-form"><input id="gist-input" aria-label="既有 Widget 網址或 Gist ID" placeholder="原本 Widget 網址或 Gist ID" autocomplete="off" required><button type="submit">套用</button></form>
   </section>
   <section id="dashboard">
@@ -130,7 +120,7 @@ main{max-width:900px;margin:0 auto;padding:16px clamp(10px,3vw,20px) 24px}
         <button type="button" class="icon-btn" id="next" aria-label="下個月">›</button>
         <button type="button" class="today-btn" id="today">今天</button>
       </div>
-      <div class="service-legend" id="services"></div>
+      <button type="button" class="icon-btn" id="refresh" title="重新讀取" aria-label="重新讀取最新額度">↻</button>
     </div>
     <section class="calendar-wrap" aria-label="AI 額度月曆">
       <div id="calendar" class="month-grid"></div>
@@ -139,9 +129,8 @@ main{max-width:900px;margin:0 auto;padding:16px clamp(10px,3vw,20px) 24px}
       <span class="legend-item"><span class="swatch" style="background:var(--claude)"></span>Claude</span>
       <span class="legend-item"><span class="swatch" style="background:var(--gpt)"></span>ChatGPT</span>
       <span class="legend-item"><span class="swatch" style="background:var(--google)"></span>Google</span>
-      <span class="legend-item"><span class="legend-border"></span>彩色外框：每週重置</span>
+      <span class="legend-item"><span class="legend-border"></span>每週重置</span>
     </div>
-    <p class="legend-note">三格代表各服務每週額度的已觀測消耗平均下限（pp），顏色越深代表使用越多。空白為取樣不足。重置外框不取代當日用量。</p>
     <section id="selected-details" class="details-panel" aria-live="polite"></section>
     <footer id="source" class="source"></footer>
   </section>
@@ -334,17 +323,14 @@ function renderEvents(key){
 }
 function drawDetails(){
   var past=selected<TODAY,today=selected===TODAY;
-  var out='<div class="details-head"><div class="details-title">'+dateText(selected)+(today?'<span class="pill">今天</span>':past?'<span class="pill">歷史</span>':'<span class="pill">未來</span>')+'</div>'+
-    '<div class="details-kicker">'+(today?"即時額度與今日已觀測消耗":past?"每日使用量回顧":"預定重置")+'</div></div>';
+  var out='<div class="details-head"><div class="details-title">'+dateText(selected)+(today?'<span class="pill">今天</span>':past?'<span class="pill">已用 · pp</span>':'<span class="pill">重置</span>')+'</div></div>';
   if(past||today){
     out+=metricCards(selected);
-    out+='<p class="note">顯示每個服務旗下「每週額度」追蹤項目的已觀測下降總量 ÷ 追蹤項目數（pp），屬保守下限，並非實際 Token 數。跨日、跨重置或取樣間隔過長的變化不強制分配；空白代表資料不足。</p>';
     if(today)out+=renderCurrent();
     else out+=renderWindowBreakdown(selected);
     if((eventMap()[selected]||[]).length)out+='<h3 class="section-heading">當日每週額度重置</h3>'+renderEvents(selected)
   }else{
     out+='<h3 class="section-heading">每週額度重置</h3>'+renderEvents(selected);
-    out+='<p class="note">未來不預填消耗量；僅顯示目前資料提供的下次重置時間，不推算更遠的週期。</p>';
   }
   document.getElementById("selected-details").innerHTML=out;
 }
@@ -356,9 +342,9 @@ function draw(){
   var age=Date.now()-Number(CURRENT.updatedAt||0);
   var footer=document.getElementById("source");
   footer.classList.toggle("stale",!Number.isFinite(age)||age>12*3600000);
-  footer.textContent=(demo?"展示資料 · 僅供確認版面":"資料來源：既有 Gist")+
-    "　｜　"+(isNum(CURRENT.updatedAt)?"最後更新 "+dateLabel(Number(CURRENT.updatedAt)):"尚無更新時間")+
-    (HISTORY?"　｜　含歷史紀錄":"　｜　缺少歷史紀錄");
+  footer.textContent=(demo?"示範 · ":"")+
+    (isNum(CURRENT.updatedAt)?"更新 "+dateLabel(Number(CURRENT.updatedAt)):"尚無更新時間")+
+    (HISTORY?"":" · 無歷史資料");
 }
 function moveMonth(n){
   var p=displayMonth.split("-").map(Number),d=new Date(Date.UTC(p[0],p[1]-1+n,1));
