@@ -218,6 +218,41 @@ body.detail {
   .detail *, .detail *::before, .detail *::after {animation-duration:0.01ms!important;transition-duration:0.01ms!important;}
 }
 
+
+/* V2.1: Notion-safe controls, grouped quotas and synchronized analytics */
+.detail header {min-height:29px;height:29px;margin:0;padding:0}
+.detail header h1 {display:none}
+.detail .detail-toolbar {margin-bottom:12px;flex-wrap:nowrap;gap:8px}
+.detail .tools.bar {margin:0;gap:7px;display:flex;align-items:center}
+.detail .stamp {font-size:10px;white-space:nowrap}
+.detail .summary-meters {grid-template-columns:repeat(2,minmax(0,1fr))}
+.detail .grouped-models {display:flex;flex-direction:column;gap:13px}
+.detail .model-group {min-width:0;display:flex;flex-direction:column;gap:6px}
+.detail .model-group + .model-group {border-top:1px solid var(--q-border);padding-top:11px}
+.detail .model-title {font-size:12px;font-weight:640;line-height:1.3;overflow-wrap:anywhere}
+.detail .model-meter-stack {display:flex;flex-direction:column;gap:8px}
+.detail .model-meter-stack .summary-labels {margin-bottom:4px}
+.detail .model-meter-stack .summary-percent {font-size:12px}
+.detail .model-meter-stack .summary-name {font-size:11px}
+.detail .model-select-row {margin-bottom:9px}
+.detail .model-select {display:block;width:100%;max-width:100%;border:1px solid var(--q-border);background:var(--q-soft);color:var(--q-ink);border-radius:8px;padding:9px 34px 9px 11px;font:inherit;font-size:12px;cursor:pointer}
+.detail .model-select:focus-visible {outline:2px solid var(--q-blue);outline-offset:2px}
+.detail .window-tabs {overflow-x:visible;gap:3px}
+.detail .window-tabs button {flex:1 1 0;white-space:normal;overflow-wrap:anywhere;min-width:0}
+.detail .focus-row {margin-bottom:13px}
+.detail .focus-row .metric-big {font-size:29px}
+.detail .usage-svg {display:block;width:100%;height:110px;touch-action:pan-y}
+.detail .usage-svg .axis {font-size:10px;fill:var(--q-sub)}
+.detail .usage-svg .gridline {stroke:var(--q-border);stroke-width:1}
+.detail .usage-svg .usage-bar {fill:var(--q-blue);opacity:.65}
+.detail .usage-svg .usage-bar.unknown {fill:var(--q-border);opacity:1}
+.detail .usage-caption {line-height:1.5}
+@media(max-width:380px) {
+  .detail .detail-toolbar {gap:5px}
+  .detail .tools.bar {gap:4px}
+  .detail .stamp {font-size:9px}
+}
+
 </style>
 </head>
 <body>
@@ -297,7 +332,6 @@ const fmtDT = t => { const d = new Date(t); return (d.getMonth() + 1) + '/' + d.
 const pctVal = v => Math.max(0, Math.min(100, Number.isFinite(+v) ? +v : 0))
 const fmtPct = v => Math.round(pctVal(v)) + '%'
 const validTime = t => Number.isFinite(+t) && +t > 0
-const statusText = s => s === 'bad' ? '可能提前耗盡' : s === 'warn' ? '接近額度上限' : '可撐到重置'
 
 function seriesOf(key) {
   if (!HIST || !Array.isArray(HIST.keys) || !Array.isArray(HIST.rows)) return []
@@ -310,38 +344,6 @@ function resetsOf(key) {
   const r = HIST && HIST.resets && HIST.resets[key]
   return Array.isArray(r) ? r.filter(validTime).map(Number).sort((a,b) => a-b) : []
 }
-function dropTotal(pts, start, stop) {
-  let total = 0
-  for (let i = 1; i < pts.length; i++) {
-    if (pts[i][0] < start || pts[i][0] > stop) continue
-    const d = pts[i-1][1] - pts[i][1]
-    if (d > 0 && d <= 100) total += d
-  }
-  return total
-}
-function forecast(w, pts) {
-  const now = Date.now(), len = winLen(w.label)
-  if (!len || !validTime(w.resetsAt) || w.resetsAt <= now || !pts.length) return null
-  const start = w.resetsAt - len
-  const current = pts.filter(p => p[0] >= start && p[0] <= now)
-  if (current.length < 2 || current[current.length-1][0] - current[0][0] < 20*60e3) return null
-  const used = 100 - pctVal(w.remaining)
-  const elapsed = Math.max(now - start, 60*60e3)
-  const avg = used / elapsed
-  const recentStart = now - (len < DAY ? 60*60e3 : DAY)
-  const rp = current.filter(p => p[0] >= recentStart)
-  const recent = rp.length >= 2 && rp[rp.length-1][0] - rp[0][0] >= 20*60e3
-    ? dropTotal(rp, recentStart, now) / (rp[rp.length-1][0] - rp[0][0]) : 0
-  const rate = Math.max(avg, recent)
-  if (rate <= 0) return null
-  const remaining = pctVal(w.remaining), projected = now + remaining / rate
-  if (projected < w.resetsAt) {
-    return { cls:'bad', title:'可能提前耗盡', description:'依目前消耗速度，預估 ' + fmtDT(projected) + ' 耗盡，早於預定重置。' }
-  }
-  const left = Math.max(0, remaining - rate * (w.resetsAt - now))
-  return { cls:left < 15 ? 'warn' : 'ok', title:left < 15 ? '接近額度上限' : '預估足夠',
-    description:'以目前速度估算，重置時約剩 ' + Math.round(left) + '%。' }
-}
 function meterWindow(w) {
   const v = pctVal(w.remaining), cls = v <= 15 ? 'bad' : v <= 40 ? 'warn' : ''
   return '<div class="summary-meter"><div class="summary-labels"><span class="summary-name">' + esc(w.label) +
@@ -349,10 +351,45 @@ function meterWindow(w) {
     '<div class="meter ' + cls + '" role="progressbar" aria-label="' + esc(w.label) + '剩餘額度" aria-valuenow="' + Math.round(v) +
     '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + v + '%"></i></div></div>'
 }
-function dateTicks(from, now) {
+
+function cycleOf(label) {
+  return /5\s*小時$/.test(label) ? 'five' : /每週$/.test(label) ? 'week' : 'other'
+}
+function modelGroups(windows) {
+  const groups=[],indexByName=new Map()
+  windows.forEach((w,index)=>{
+    const m=/^(.*?)\s*·\s*(5\s*小時|每週)$/.exec(w.label)
+    const name=m&&m[1].trim()?m[1].trim():'其他'
+    if(!indexByName.has(name)) {
+      const group={name,indices:[]}
+      groups.push(group);indexByName.set(name,group)
+    }
+    indexByName.get(name).indices.push(index)
+  })
+  const order={five:0,week:1,other:2}
+  groups.forEach(g=>g.indices.sort((a,b)=>order[cycleOf(windows[a].label)]-order[cycleOf(windows[b].label)]))
+  return groups
+}
+function groupedMeter(w) {
+  const v=pctVal(w.remaining),cls=v<=15?'bad':v<=40?'warn':''
+  const kind=cycleOf(w.label),label=kind==='five'?'5 小時':kind==='week'?'每週':w.label
+  return '<div class="summary-meter"><div class="summary-labels"><span class="summary-name">'+esc(label)+
+    '</span><strong class="summary-percent">'+fmtPct(v)+'</strong></div>'+
+    '<div class="meter '+cls+'" role="progressbar" aria-label="'+esc(label)+'剩餘額度" aria-valuenow="'+Math.round(v)+
+    '" aria-valuemin="0" aria-valuemax="100"><i style="width:'+v+'%"></i></div></div>'
+}
+function summaryForWindows(windows) {
+  const named=windows.some(w=>/·\s*(5\s*小時|每週)$/.test(w.label))
+  if(!named)return '<div class="summary-meters">'+windows.map(meterWindow).join('')+'</div>'
+  return '<div class="grouped-models">'+modelGroups(windows).map(g=>
+    '<div class="model-group"><div class="model-title">'+esc(g.name)+'</div><div class="model-meter-stack">'+
+    g.indices.map(i=>groupedMeter(windows[i])).join('')+'</div></div>').join('')+'</div>'
+}
+
+function dateTicks(from, now, atY = 168) {
   return [0,.5,1].map(p => {
     const x = 36 + 288*p, t = from + (now - from)*p
-    return '<text class="axis" x="' + x + '" y="168" text-anchor="' +
+    return '<text class="axis" x="' + x + '" y="'+atY+'" text-anchor="' +
       (p === 0 ? 'start' : p === 1 ? 'end' : 'middle') + '">' + esc(fmtDT(t)) + '</text>'
   }).join('')
 }
@@ -382,82 +419,95 @@ function trendChart(pts, from, now, resets, accountIndex, windowIndex) {
     dateTicks(from,now)+'</svg><div class="chart-tip" aria-hidden="true"></div></div>' +
     '<div class="legend"><span><i class="legend-dot"></i>歷史剩餘</span><span><i class="legend-dash"></i>重置事件</span></div>'
 }
-function usageBuckets(pts, now, short) {
-  const count = short ? 5 : RANGE
-  const end = short ? now : new Date(new Date(now).setHours(24,0,0,0)).getTime()
-  const span = short ? 60*60e3 : DAY
-  const begin = end - count*span
-  const buckets = Array.from({length:count},(_,i)=>({start:begin+i*span,end:begin+(i+1)*span,used:0,observed:false}))
-  for (let i=1;i<pts.length;i++) {
-    const t=pts[i][0], b=buckets.find(x=>t>=x.start && t<x.end)
-    if (!b) continue
-    b.observed=true
-    const delta=pts[i-1][1]-pts[i][1]
-    if (delta>0 && delta<=100) b.used+=delta
+
+function usageBuckets(pts,from,now) {
+  const bins=[]
+  const d0=new Date(from);d0.setHours(0,0,0,0)
+  for(let t=d0.getTime();t<now;) {
+    const d=new Date(t);d.setDate(d.getDate()+1)
+    const next=d.getTime(),left=Math.max(from,t),right=Math.min(now,next)
+    if(right>left)bins.push({start:left,end:right,day:t,used:0,observed:false})
+    t=next
   }
-  return buckets
+  for(let i=1;i<pts.length;i++){
+    const [t,v]=pts[i]
+    if(t<from||t>now)continue
+    const bin=bins.find(b=>t>=b.start&&(t<b.end||(b.end===now&&t<=now)))
+    if(!bin)continue
+    const delta=pts[i-1][1]-v
+    if(delta>0&&delta<=100)bin.used+=delta
+    if(pts[i-1][0]>=bin.start)bin.observed=true
+  }
+  return bins
 }
-function usageChart(pts, now, short) {
-  const b=usageBuckets(pts,now,short)
-  const usable=pts.filter(p=>p[0]>=b[0].start && p[0]<=now)
-  if (usable.length < 2) return '<div class="info-empty">此區間採樣不足，尚無消耗統計。</div>'
-  const max=Math.max(5,...b.map(x=>x.used))
-  const bars=b.map(x=>{
-    const unknown=!x.observed, h=unknown ? 3 : Math.max(3,Math.round(x.used / max*69))
-    const title=fmtDT(x.start)+'：'+(unknown?'無取樣資料':'已觀察消耗 '+Math.round(x.used*10)/10+' 個百分點')
-    return '<div class="usage-bar '+(unknown?'unknown':'')+'" style="height:'+h+'px" title="'+esc(title)+'" aria-label="'+esc(title)+'"></div>'
+function usageChart(pts,from,now) {
+  const bins=usageBuckets(pts,from,now),inRange=pts.filter(p=>p[0]>=from&&p[0]<=now)
+  if(inRange.length<2||inRange[inRange.length-1][0]-inRange[0][0]<20*60e3)
+    return '<div class="info-empty">此區間採樣不足，尚無消耗統計。</div>'
+  const max=Math.max(1,...bins.map(b=>b.used)),x=t=>36+(t-from)/(now-from)*288
+  const bars=bins.map(b=>{
+    const cx=x((b.start+b.end)/2),width=Math.max(1,Math.min(24,(x(b.end)-x(b.start))*.72))
+    const height=b.observed?Math.max(2,b.used/max*64):2
+    const d=new Date(b.day),label=(d.getMonth()+1)+'/'+d.getDate()+' · '+
+      (b.observed?'已觀察消耗 '+(Math.round(b.used*10)/10)+' 個百分點':'取樣不足')
+    return '<rect class="usage-bar'+(b.observed?'':' unknown')+'" x="'+(cx-width/2).toFixed(2)+
+      '" y="'+(76-height).toFixed(2)+'" width="'+width.toFixed(2)+'" height="'+height.toFixed(2)+
+      '" rx="1.5"><title>'+esc(label)+'</title></rect>'
   }).join('')
-  return '<div class="usage-chart" role="img" aria-label="各時間區間的消耗量">'+bars+'</div>' +
-    '<p class="usage-caption">'+(short?'最近 5 小時，每小時統計':'最近 '+RANGE+' 天，每日統計') +
-    ' · 單位：百分點 · 灰色代表無取樣紀錄</p>'
+  return '<svg class="usage-svg" viewBox="0 0 338 110" role="img" aria-label="每日消耗量，與歷史趨勢相同的時間軸" preserveAspectRatio="none">'+
+    '<line class="gridline" x1="36" x2="324" y1="76" y2="76"/>'+bars+dateTicks(from,now,101)+
+    '</svg><p class="usage-caption">最近 '+RANGE+' 天 · 每日下降量（百分點）· 灰色代表取樣不足；跨重置採樣可能低估消耗</p>'
 }
-function detailSection(account, ai, wi) {
-  const w=account.windows[wi], key=account.name+'|'+w.label, pts=seriesOf(key), resets=resetsOf(key)
-  const now=Date.now(), from=now-RANGE*DAY, prediction=forecast(w,pts)
-  const latest=resets.filter(t=>t<=now).pop()
-  const history=resets.filter(t=>t<=now).slice(-8).reverse()
-  const tabs=account.windows.map((item,i)=>'<button type="button" role="tab" data-window="'+i+'" data-ai="'+ai+'" '+
-    'aria-selected="'+(i===wi)+'" class="'+(i===wi?'active':'')+'">'+esc(item.label)+'</button>').join('')
+
+
+function detailSection(account,ai,wi) {
+  const w=account.windows[wi],key=account.name+'|'+w.label,pts=seriesOf(key),resets=resetsOf(key)
+  const now=Date.now(),from=now-RANGE*DAY
+  const latest=resets.filter(t=>t<=now).pop(),history=resets.filter(t=>t<=now).slice(-8).reverse()
+  const windows=account.windows,groups=modelGroups(windows)
+  const named=windows.some(item=>/·\s*(5\s*小時|每週)$/.test(item.label))
+  const group=groups.find(g=>g.indices.includes(wi))||groups[0]
+  const modelControl=named&&groups.length>1
+    ?'<div class="model-select-row"><select class="model-select" data-ai="'+ai+
+      '" aria-label="選擇模型">'+groups.map((g,i)=>'<option value="'+i+'"'+(g===group?' selected':'')+
+      '>'+esc(g.name)+'</option>').join('')+'</select></div>':''
+  const indices=named&&group?group.indices:windows.map((_,i)=>i)
+  const tabs=indices.map(i=>{
+    const type=cycleOf(windows[i].label)
+    const label=named?(type==='five'?'5 小時':type==='week'?'每週':windows[i].label):windows[i].label
+    return '<button type="button" role="tab" data-window="'+i+'" data-ai="'+ai+
+      '" aria-selected="'+(i===wi)+'" class="'+(i===wi?'active':'')+'">'+esc(label)+'</button>'
+  }).join('')
   const resetTxt=validTime(w.resetsAt)?resetText(w.resetsAt):'未提供重置時間'
-  return '<div class="detail-content" id="detail-'+ai+'">' +
-    '<div class="window-tabs" role="tablist" aria-label="額度類型">'+tabs+'</div>'+
+  return '<div class="detail-content" id="detail-'+ai+'">'+modelControl+
+    '<div class="window-tabs" role="tablist" aria-label="額度週期">'+tabs+'</div>'+
     '<div class="focus-row"><div><div class="metric-kicker">目前剩餘額度</div>'+
-    '<div class="metric-big">'+fmtPct(w.remaining)+'</div><div class="reset-at">'+esc(resetTxt)+'</div></div>'+
-    '<div><div class="metric-kicker" style="text-align:right">消耗預測</div><div class="forecast-status '+
-    (prediction?prediction.cls:'')+'">'+esc(prediction?prediction.title:'資料不足')+'</div></div></div>'+
+    '<div class="metric-big">'+fmtPct(w.remaining)+'</div><div class="reset-at">'+esc(resetTxt)+'</div></div></div>'+
     '<section class="analytics-section"><div class="section-heading"><h3>歷史剩餘趨勢</h3><span class="section-note">'+RANGE+' 天 · 0–100%</span></div>'+
     trendChart(pts,from,now,resets,ai,wi)+'</section>'+
-    '<section class="analytics-section"><div class="section-heading"><h3>消耗量統計</h3><span class="section-note">下降量累計</span></div>'+
-    usageChart(pts,now,winLen(w.label)<DAY && winLen(w.label)>0)+'</section>'+
-    '<section class="analytics-section"><div class="section-heading"><h3>重置紀錄</h3><span class="section-note">僅顯示有記錄的事件</span></div>'+
+    '<section class="analytics-section"><div class="section-heading"><h3>消耗量統計</h3><span class="section-note">每日下降量</span></div>'+
+    usageChart(pts,from,now)+'</section>'+
+    '<section class="analytics-section"><div class="section-heading"><h3>重置紀錄</h3><span class="section-note">僅顯示已有紀錄的事件</span></div>'+
     '<div class="analysis-grid"><div class="mini-metric"><div class="metric-kicker">最近重置</div><div class="mini-value">'+
     esc(latest?fmtDT(latest):'尚無紀錄')+'</div></div><div class="mini-metric"><div class="metric-kicker">預定下次重置</div>'+
     '<div class="mini-value">'+esc(validTime(w.resetsAt)?fmtDT(w.resetsAt):'未提供')+'</div></div></div>'+
     '<details class="reset-history"><summary>歷史重置紀錄 ('+history.length+')</summary>'+
     (history.length?'<ol>'+history.map(t=>'<li>'+esc(fmtDT(t))+'</li>').join('')+'</ol>':'<div class="usage-caption">目前沒有可查閱的重置紀錄。</div>')+
-    '</details></section>'+
-    '<section class="analytics-section"><div class="section-heading"><h3>額度預測</h3><span class="section-note">估算，非保證</span></div>'+
-    '<div class="forecast-copy">'+esc(prediction?prediction.description:'歷史取樣不足或無法判定使用速率，暫不提供耗盡預測。')+'</div>'+
-    '<p class="forecast-method">依本週期使用量與近期採樣消耗速率推估；異常尖峰或使用模式改變可能造成偏差。</p>'+
-    '</section></div>'
+    '</details></section></div>'
 }
 function renderDetail(data) {
   const accounts=Array.isArray(data.accounts)?data.accounts:[]
-  const grid=document.getElementById('grid')
-  grid.innerHTML=accounts.map((account,ai)=>{
+  document.getElementById('grid').innerHTML=accounts.map((account,ai)=>{
     const windows=Array.isArray(account.windows)?account.windows:[]
     const expanded=OPEN_ACCOUNT===ai
-    const alert=windows.map(w=>forecast(w,seriesOf(account.name+'|'+w.label))).filter(Boolean)
-      .sort((a,b)=>({bad:0,warn:1,ok:2}[a.cls]-{bad:0,warn:1,ok:2}[b.cls]))[0]
     const active=Math.min(SELECTED_WINDOWS.get(ai)||0,Math.max(0,windows.length-1))
-    const tag=alert && alert.cls!=='ok' ? '<div class="summary-alert '+alert.cls+'">● '+esc(alert.title)+'</div>' : ''
-    return '<section class="account-card '+(expanded?'expanded':'')+'">' +
+    return '<section class="account-card '+(expanded?'expanded':'')+'">'+
       '<button type="button" class="account-trigger" data-ai="'+ai+'" aria-expanded="'+expanded+
       '" aria-controls="detail-'+ai+'"><div class="account-title-row"><div><div class="account-title">'+esc(account.name)+
       '</div><div class="account-plan">'+esc(account.plan||'')+'</div></div>'+
       '<div class="account-indicator"><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div></div>'+
-      '<div class="summary-meters">'+(windows.length?windows.map(meterWindow).join(''):'<span class="reset">沒有額度資料</span>')+
-      '</div>'+tag+'</button>'+(expanded&&windows.length?detailSection(account,ai,active):'')+'</section>'
+      (windows.length?summaryForWindows(windows):'<span class="reset">沒有額度資料</span>')+
+      '</button>'+(expanded&&windows.length?detailSection(account,ai,active):'')+'</section>'
   }).join('')||'<div class="empty">沒有資料</div>'
   document.getElementById('foot').textContent=''
 }
@@ -468,6 +518,22 @@ document.getElementById('grid').addEventListener('click',event=>{
   const trigger=event.target.closest('button.account-trigger')
   if (trigger) { const ai=+trigger.dataset.ai;OPEN_ACCOUNT=OPEN_ACCOUNT===ai?null:ai;renderDetail(LAST) }
 })
+
+document.getElementById('grid').addEventListener('change',event=>{
+  if(!isDetail()||!LAST)return
+  const sel=event.target.closest('select.model-select')
+  if(!sel)return
+  const ai=+sel.dataset.ai,account=LAST.accounts[ai]
+  if(!account||!Array.isArray(account.windows))return
+  const group=modelGroups(account.windows)[+sel.value]
+  if(!group||!group.indices.length)return
+  const previous=SELECTED_WINDOWS.get(ai)||0
+  const preferred=cycleOf(account.windows[previous]?.label||'')
+  const next=group.indices.find(i=>cycleOf(account.windows[i].label)===preferred)??group.indices[0]
+  SELECTED_WINDOWS.set(ai,next)
+  renderDetail(LAST)
+})
+
 document.getElementById('grid').addEventListener('pointermove',event=>{
   const svg=event.target.closest('svg.trend-chart')
   if (!svg || !LAST || !isDetail()) return
@@ -532,9 +598,10 @@ async function load() {
       const toolbar = document.createElement('div')
       toolbar.className = 'detail-toolbar'
       document.querySelector('header').after(toolbar)
-      toolbar.appendChild(bar)
       toolbar.appendChild(seg)
-      document.querySelector('header h1').textContent = 'Quota Monitor'
+      toolbar.appendChild(bar)
+      const stamp=bar.querySelector('.stamp'),reload=bar.querySelector('.reload')
+      if(stamp&&reload)bar.insertBefore(stamp,reload)
     }
   }
   const gist = p.get('g')
